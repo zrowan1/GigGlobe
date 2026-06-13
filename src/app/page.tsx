@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 import { createClient } from "@/lib/supabase/server";
 import { signOut } from "@/app/actions";
 import { Button } from "@/components/ui/button";
@@ -28,9 +30,12 @@ export default async function Home() {
         </CardHeader>
         <CardContent className="grid gap-4">
           <p className="text-sm text-muted-foreground">
-            Hier komt straks de wereldkaart met al je optredens. Fase 0 is
-            klaar — volgende stap: optredens toevoegen (Fase 1).
+            Hier komt straks de wereldkaart met al je optredens. Bekijk
+            voorlopig je optredens in de lijst.
           </p>
+          <Button asChild className="w-full">
+            <Link href="/gigs">Mijn optredens</Link>
+          </Button>
           <form action={signOut}>
             <Button variant="outline" type="submit" className="w-full">
               Uitloggen
