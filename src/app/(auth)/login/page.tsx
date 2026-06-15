@@ -22,10 +22,12 @@ function LoginForm() {
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
     "idle"
   );
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setStatus("sending");
+    setErrorMsg(null);
 
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithOtp({
@@ -35,7 +37,12 @@ function LoginForm() {
       },
     });
 
-    setStatus(error ? "error" : "sent");
+    if (error) {
+      setErrorMsg(error.message);
+      setStatus("error");
+    } else {
+      setStatus("sent");
+    }
   }
 
   return (
@@ -78,6 +85,11 @@ function LoginForm() {
             {status === "error" && (
               <p className="text-sm text-destructive">
                 Er ging iets mis. Probeer het opnieuw.
+                {errorMsg && (
+                  <span className="mt-1 block text-xs opacity-80">
+                    {errorMsg}
+                  </span>
+                )}
               </p>
             )}
           </form>
