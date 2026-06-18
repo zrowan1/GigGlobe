@@ -46,7 +46,8 @@ export interface Media {
 }
 
 // A gig together with its artist and venue, as returned by the list and
-// detail queries (Supabase joins related rows into nested objects).
+// detail queries (the Drizzle helpers in src/lib/db/queries.ts join the
+// related rows into these nested objects).
 export interface GigWithRelations extends Gig {
   artist: Pick<Artist, "id" | "name">;
   venue: Pick<

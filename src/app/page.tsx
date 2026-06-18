@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
 import { signOut } from "@/app/actions";
 import { Button } from "@/components/ui/button";
 import {
@@ -14,10 +14,8 @@ import {
 // Home page. In Phase 2 this becomes the map/globe.
 // For now it proves that login works and shows who you are.
 export default async function Home() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const session = await auth();
+  const user = session?.user;
 
   return (
     <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">

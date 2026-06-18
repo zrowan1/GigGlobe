@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, Suspense } from "react";
-import { useSearchParams } from "next/navigation";
-import { createClient } from "@/lib/supabase/client";
+import { useActionState } from "react";
+
+import { authenticate } from "@/app/(auth)/login/actions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,85 +14,50 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 
-function LoginForm() {
-  const searchParams = useSearchParams();
-  const linkError = searchParams.get("error") === "auth";
-
-  const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">(
-    "idle"
-  );
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setStatus("sending");
-
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-
-    setStatus(error ? "error" : "sent");
-  }
+export default function LoginPage() {
+  const [state, formAction, isPending] = useActionState(authenticate, {});
 
   return (
-    <Card className="w-full max-w-sm">
-      <CardHeader>
-        <CardTitle className="text-2xl">🌍 GigGlobe</CardTitle>
-        <CardDescription>
-          Log in met je e-mailadres. Je krijgt een inloglink gemaild — geen
-          wachtwoord nodig.
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        {status === "sent" ? (
-          <p className="text-sm">
-            ✅ Check je inbox! We hebben een inloglink gestuurd naar{" "}
-            <strong>{email}</strong>. De link werkt één keer.
-          </p>
-        ) : (
-          <form onSubmit={handleSubmit} className="grid gap-4">
-            {linkError && (
-              <p className="text-sm text-destructive">
-                Die inloglink is verlopen of al gebruikt. Vraag hieronder een
-                nieuwe aan.
-              </p>
-            )}
+    <main className="flex min-h-svh items-center justify-center p-4">
+      <Card className="w-full max-w-sm">
+        <CardHeader>
+          <CardTitle className="text-2xl">🌍 GigGlobe</CardTitle>
+          <CardDescription>
+            Log in met je e-mailadres en wachtwoord.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form action={formAction} className="grid gap-4">
             <div className="grid gap-2">
               <Label htmlFor="email">E-mailadres</Label>
               <Input
                 id="email"
+                name="email"
                 type="email"
                 placeholder="jij@voorbeeld.nl"
+                autoComplete="email"
                 required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
               />
             </div>
-            <Button type="submit" disabled={status === "sending"}>
-              {status === "sending" ? "Versturen..." : "Stuur inloglink"}
+            <div className="grid gap-2">
+              <Label htmlFor="password">Wachtwoord</Label>
+              <Input
+                id="password"
+                name="password"
+                type="password"
+                autoComplete="current-password"
+                required
+              />
+            </div>
+            <Button type="submit" disabled={isPending}>
+              {isPending ? "Bezig met inloggen…" : "Inloggen"}
             </Button>
-            {status === "error" && (
-              <p className="text-sm text-destructive">
-                Er ging iets mis. Probeer het opnieuw.
-              </p>
+            {state.error && (
+              <p className="text-sm text-destructive">{state.error}</p>
             )}
           </form>
-        )}
-      </CardContent>
-    </Card>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <main className="flex min-h-svh items-center justify-center p-4">
-      <Suspense>
-        <LoginForm />
-      </Suspense>
+        </CardContent>
+      </Card>
     </main>
   );
 }

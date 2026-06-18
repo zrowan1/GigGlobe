@@ -18,7 +18,7 @@
 | Styling | **Tailwind CSS + shadcn/ui** | Snel itereren, consistente componenten |
 | Database | **PostgreSQL (self-hosted)** | Draait als eigen container in `docker-compose`, data op een lokaal volume. Volledig in eigen beheer |
 | DB-toegang | **Drizzle ORM** | Lichtgewicht, TypeScript-first, SQL-dichtbij. Migraties in de repo (`drizzle-kit`) |
-| Auth | **Auth.js (NextAuth v5)** met e-mail + wachtwoord | Geen externe mailserver nodig (geen magic link); sessies in Postgres |
+| Auth | **Auth.js (NextAuth v5)** met e-mail + wachtwoord | Geen externe mailserver nodig (geen magic link); sessie in een ondertekende JWT-cookie (de Credentials-provider werkt het eenvoudigst met JWT, dus géén `sessions`-tabel nodig) |
 | Media-opslag | **Lokaal volume** (bind mount in de container) | Foto's en video's op schijf; de database bevat alleen het bestandspad + metadata |
 | Kaart | **MapLibre GL JS** (via `react-map-gl/maplibre`) | Gratis, open source, geen Mapbox-token nodig |
 | Globe-weergave | MapLibre `projection: 'globe'` | Sinds MapLibre v5 ingebouwd; geen aparte library nodig |
@@ -41,18 +41,12 @@
 
 ```sql
 -- users: eigen accounts (e-mail + wachtwoord via Auth.js)
+-- Sessies staan NIET in de database maar in een JWT-cookie, dus er is geen
+-- aparte sessions-tabel.
 create table users (
   id uuid primary key default gen_random_uuid(),
   email text not null unique,
   password_hash text not null,
-  created_at timestamptz default now()
-);
-
--- sessions: ingelogde sessies (Auth.js database-sessies)
-create table sessions (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid references users not null,
-  expires_at timestamptz not null,
   created_at timestamptz default now()
 );
 
@@ -102,7 +96,7 @@ create table media (
 
 Belangrijk: één festival-bezoek met meerdere artiesten = meerdere `gigs`-rijen die naar dezelfde `venue` en dezelfde datum wijzen. Dat is bewust.
 
-> De exacte vorm van `users`/`sessions` volgt de adapter die Auth.js gebruikt. Houd ze minimaal maar zorg dat álle inhoudelijke tabellen (`artists`, `venues`, `gigs`, `media`) naar `users` verwijzen.
+> Houd `users` minimaal (e-mail + wachtwoord-hash) maar zorg dat álle inhoudelijke tabellen (`artists`, `venues`, `gigs`, `media`) naar `users` verwijzen. De login (`authorize`) zoekt de user op e-mail en vergelijkt het wachtwoord met de bcrypt-hash; de user-id reist daarna mee in de JWT.
 
 ## Mappenstructuur
 
@@ -145,7 +139,7 @@ docker-compose.yml         # app + postgres + volumes
 - Video-uploads kunnen groot zijn: stream de upload naar het volume (niet volledig in geheugen laden) en toon altijd een progress bar. Let op de Next.js body-size limiet voor route handlers/server actions en stel die bewust in. Reverse proxy mag de upload-grootte niet onnodig beperken (`client_max_body_size` o.i.d.).
 - MapLibre rendert client-side: laad de kaartcomponent met `dynamic(() => import(...), { ssr: false })`.
 - iOS Safari heeft beperkingen met video-autoplay: toon video's met poster-frame en expliciete play-knop.
-- Achter een reverse proxy moet de app de juiste publieke URL kennen: zet `X-Forwarded-Host` en `X-Forwarded-Proto` door en gebruik die voor redirects (sluit aan op de bestaande auth-callback fix, commit `54f89fc`). Stel `AUTH_URL` in op het publieke (sub)domein.
+- Achter een reverse proxy moet de app de juiste publieke URL kennen: zet `X-Forwarded-Host` en `X-Forwarded-Proto` door, stel `AUTH_URL` in op het publieke (sub)domein en draai met `AUTH_TRUST_HOST=true` zodat Auth.js de doorgegeven host vertrouwt voor zijn redirects.
 - Media op een volume betekent dat je de map moet **mounten** en in de image niet meebakt; bij een nieuwe container mag bestaande media niet verdwijnen.
 
 ## Testen & kwaliteit

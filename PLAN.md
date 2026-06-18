@@ -30,18 +30,18 @@ Je voegt een optreden toe (artiest + datum + venue/festival), de locatie verschi
 
 ---
 
-## Fase R — Migratie naar selfhost (eerstvolgende stap)
+## Fase R — Migratie naar selfhost ✅ (afgerond)
 
-**Doel: de bestaande Supabase/Vercel-code ombouwen naar de selfhost-stack uit AGENTS.md.** De huidige code is gebouwd op Supabase (cloud) + Vercel; deze fase haalt die afhankelijkheden eruit. De feature-fases hieronder (1–4) blijven inhoudelijk overeind — alleen de onderliggende techniek verandert.
+**Doel: de bestaande Supabase/Vercel-code ombouwen naar de selfhost-stack uit AGENTS.md.** De huidige code was gebouwd op Supabase (cloud) + Vercel; deze fase heeft die afhankelijkheden eruit gehaald. De feature-fases hieronder (1–4) zijn inhoudelijk gelijk gebleven — alleen de onderliggende techniek is veranderd.
 
-- [ ] `@supabase/*`-client vervangen door **Drizzle ORM** + een Postgres-verbinding (`src/lib/db`)
-- [ ] Database-schema overzetten naar Drizzle (incl. nieuwe `users`/`sessions`-tabellen)
-- [ ] Magic-link login vervangen door **Auth.js** met e-mail + wachtwoord
-- [ ] Supabase Storage vervangen door **lokale upload** naar het media-volume + een route om bestanden te serveren
-- [ ] `vercel.json` en Supabase-env vars verwijderen; `.env.example` bijwerken (`DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL`, `MEDIA_DIR`)
-- [ ] `Dockerfile` + `docker-compose.yml` toevoegen en de stack end-to-end testen
+- [x] `@supabase/*`-client vervangen door **Drizzle ORM** + een Postgres-verbinding (`src/lib/db`)
+- [x] Database-schema overzetten naar Drizzle (`users` + de inhoudelijke tabellen; géén `sessions`-tabel want JWT)
+- [x] Magic-link login vervangen door **Auth.js** met e-mail + wachtwoord (account aanmaken via `npm run seed`)
+- [x] `vercel.json` en Supabase-env vars verwijderen; `.env.example` bijwerken (`DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL`, `MEDIA_DIR`)
+- [x] `Dockerfile` + `docker-compose.yml` toevoegen (app + postgres + media-volume)
+- [ ] **Later (Fase 3):** lokale media-upload + serveer-route — bewust nog niet gebouwd, hoort bij de media-fase
 
-**Klaar wanneer:** de app draait volledig zonder Supabase of Vercel, in containers op je eigen server.
+**Klaar wanneer:** de app draait volledig zonder Supabase of Vercel, in containers op je eigen server. ✅ De media-upload schuift mee naar Fase 3 (de `media`-tabel staat al wel in het schema).
 
 ---
 
@@ -132,15 +132,14 @@ Fase 4: PWA & polish       ████ ~1-2 sessies
 
 ## Eerste concrete stap
 
-De eerstvolgende klus is **Fase R**: de bestaande code losweken van Supabase en Vercel en op de selfhost-stack zetten. Begin met de database-laag en `docker-compose`:
+Fase R is afgerond: de code draait nu op de selfhost-stack (Drizzle + Postgres + Auth.js + Docker). De eerstvolgende inhoudelijke klus is **Fase 2 — de kaart en globe**, of het afronden van de laatste verfijningen in Fase 1.
+
+Om de huidige app lokaal te draaien:
 
 ```bash
-# lokale PostgreSQL opstarten om tegen te ontwikkelen
-docker compose up -d db
-
-# Drizzle toevoegen en het schema definiëren in src/lib/db/schema.ts
-npm install drizzle-orm pg
-npm install -D drizzle-kit
+cp .env.example .env.local            # vul DATABASE_URL, AUTH_SECRET, AUTH_URL, MEDIA_DIR in
+docker compose up -d db               # lokale PostgreSQL
+npm run db:migrate                    # tabellen aanmaken
+npm run seed -- jij@voorbeeld.nl pw   # login-account aanmaken
+npm run dev                           # app op http://localhost:3000
 ```
-
-Pak daarna samen met je coding agent de checklist van Fase R op — AGENTS.md beschrijft de volledige stack en afspraken zodat die agent precies weet wat de bedoeling is.

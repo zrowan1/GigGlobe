@@ -1,20 +1,22 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
+import { listArtists, listVenues } from "@/lib/db/queries";
 import { createGig } from "@/app/gigs/actions";
 import { GigForm } from "@/components/gigs/gig-form";
 import { Button } from "@/components/ui/button";
-import type { Artist, Venue } from "@/types";
 
 // "New gig" page. It loads your existing artists and venues so the form can
 // suggest them (no duplicate "Kendrick Lamar" in the database).
 export default async function NewGigPage() {
-  const supabase = await createClient();
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
 
-  const [{ data: artists }, { data: venues }] = await Promise.all([
-    supabase.from("artists").select("*").order("name"),
-    supabase.from("venues").select("*").order("name"),
+  const [artists, venues] = await Promise.all([
+    listArtists(session.user.id),
+    listVenues(session.user.id),
   ]);
 
   return (
@@ -29,8 +31,8 @@ export default async function NewGigPage() {
       </div>
 
       <GigForm
-        artists={(artists as Artist[]) ?? []}
-        venues={(venues as Venue[]) ?? []}
+        artists={artists}
+        venues={venues}
         action={createGig}
         submitLabel="Optreden opslaan"
       />

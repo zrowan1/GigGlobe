@@ -3,7 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
+import {
+  createArtist,
+  createVenue,
+  deleteGigById,
+  findArtistByName,
+  insertGig,
+  updateGigById,
+} from "@/lib/db/queries";
 import { searchPlaces, type GeoResult } from "@/lib/geocoding";
 import type { VenueType } from "@/types";
 
@@ -94,64 +102,44 @@ interface ParsedGig {
 // Find an existing artist by exact (case-insensitive) name, or create one.
 // This is the "no duplicate Kendrick Lamar" rule from the plan.
 async function resolveArtistId(
-  supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   values: ParsedGig
 ): Promise<string> {
   if (values.artistId) return values.artistId;
 
-  const { data: existing } = await supabase
-    .from("artists")
-    .select("id")
-    .ilike("name", values.artistName)
-    .maybeSingle();
+  const existing = await findArtistByName(userId, values.artistName);
+  if (existing) return existing;
 
-  if (existing) return existing.id;
-
-  const { data: created, error } = await supabase
-    .from("artists")
-    .insert({ user_id: userId, name: values.artistName })
-    .select("id")
-    .single();
-
-  if (error || !created) throw new Error("Kon de artiest niet opslaan.");
-  return created.id;
+  return createArtist(userId, values.artistName);
 }
 
 // Use the picked existing venue, or create a new one from the geocode result.
 async function resolveVenueId(
-  supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
   values: ParsedGig
 ): Promise<string> {
   if (values.venueId) return values.venueId;
 
-  const { data: created, error } = await supabase
-    .from("venues")
-    .insert({
-      user_id: userId,
-      name: values.venueName,
-      type: values.venueType,
-      city: values.city,
-      country: values.country,
-      latitude: values.latitude,
-      longitude: values.longitude,
-    })
-    .select("id")
-    .single();
+  // parseGigForm guarantees coordinates are present when there's no venueId.
+  if (values.latitude === null || values.longitude === null) {
+    throw new Error("Kon de locatie niet opslaan.");
+  }
 
-  if (error || !created) throw new Error("Kon de locatie niet opslaan.");
-  return created.id;
+  return createVenue(userId, {
+    name: values.venueName,
+    type: values.venueType,
+    city: values.city,
+    country: values.country,
+    latitude: values.latitude,
+    longitude: values.longitude,
+  });
 }
 
-async function requireUserId(
-  supabase: Awaited<ReturnType<typeof createClient>>
-): Promise<string> {
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-  return user.id;
+async function requireUserId(): Promise<string> {
+  const session = await auth();
+  const userId = session?.user?.id;
+  if (!userId) redirect("/login");
+  return userId;
 }
 
 // Create a new gig (and any new artist/venue it needs).
@@ -162,23 +150,19 @@ export async function createGig(
   const parsed = parseGigForm(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
-  const userId = await requireUserId(supabase);
+  const userId = await requireUserId();
 
   try {
-    const artistId = await resolveArtistId(supabase, userId, parsed.values);
-    const venueId = await resolveVenueId(supabase, userId, parsed.values);
+    const artistId = await resolveArtistId(userId, parsed.values);
+    const venueId = await resolveVenueId(userId, parsed.values);
 
-    const { error } = await supabase.from("gigs").insert({
-      user_id: userId,
-      artist_id: artistId,
-      venue_id: venueId,
-      gig_date: parsed.values.gigDate,
+    await insertGig(userId, {
+      artistId,
+      venueId,
+      gigDate: parsed.values.gigDate,
       notes: parsed.values.notes,
       rating: parsed.values.rating,
     });
-
-    if (error) return { error: "Kon het optreden niet opslaan." };
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Er ging iets mis." };
   }
@@ -198,25 +182,19 @@ export async function updateGig(
   const parsed = parseGigForm(formData);
   if (!parsed.ok) return { error: parsed.error };
 
-  const supabase = await createClient();
-  const userId = await requireUserId(supabase);
+  const userId = await requireUserId();
 
   try {
-    const artistId = await resolveArtistId(supabase, userId, parsed.values);
-    const venueId = await resolveVenueId(supabase, userId, parsed.values);
+    const artistId = await resolveArtistId(userId, parsed.values);
+    const venueId = await resolveVenueId(userId, parsed.values);
 
-    const { error } = await supabase
-      .from("gigs")
-      .update({
-        artist_id: artistId,
-        venue_id: venueId,
-        gig_date: parsed.values.gigDate,
-        notes: parsed.values.notes,
-        rating: parsed.values.rating,
-      })
-      .eq("id", gigId);
-
-    if (error) return { error: "Kon het optreden niet bijwerken." };
+    await updateGigById(userId, gigId, {
+      artistId,
+      venueId,
+      gigDate: parsed.values.gigDate,
+      notes: parsed.values.notes,
+      rating: parsed.values.rating,
+    });
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Er ging iets mis." };
   }
@@ -226,15 +204,14 @@ export async function updateGig(
   redirect(`/gigs/${gigId}`);
 }
 
-// Delete a gig. RLS guarantees you can only delete your own.
+// Delete a gig. The query is scoped to the user, so you can only delete your own.
 export async function deleteGig(formData: FormData): Promise<void> {
   const gigId = String(formData.get("gigId") ?? "").trim();
   if (!gigId) return;
 
-  const supabase = await createClient();
-  await requireUserId(supabase);
+  const userId = await requireUserId();
 
-  await supabase.from("gigs").delete().eq("id", gigId);
+  await deleteGigById(userId, gigId);
 
   revalidatePath("/gigs");
   redirect("/gigs");

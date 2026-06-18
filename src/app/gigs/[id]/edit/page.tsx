@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
+import { getGig, listArtists, listVenues } from "@/lib/db/queries";
 import { updateGig } from "@/app/gigs/actions";
 import { GigForm } from "@/components/gigs/gig-form";
 import { Button } from "@/components/ui/button";
-import type { Artist, GigWithRelations, Venue } from "@/types";
 
 // Edit page. It reuses the exact same GigForm as "new", but pre-filled with
 // the existing gig and wired to the updateGig action.
@@ -16,22 +16,15 @@ export default async function EditGigPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
 
-  const [{ data: gigData }, { data: artists }, { data: venues }] =
-    await Promise.all([
-      supabase
-        .from("gigs")
-        .select(
-          "*, artist:artists(id,name), venue:venues(id,name,type,city,country,latitude,longitude)"
-        )
-        .eq("id", id)
-        .maybeSingle(),
-      supabase.from("artists").select("*").order("name"),
-      supabase.from("venues").select("*").order("name"),
-    ]);
+  const [gig, artists, venues] = await Promise.all([
+    getGig(session.user.id, id),
+    listArtists(session.user.id),
+    listVenues(session.user.id),
+  ]);
 
-  const gig = gigData as GigWithRelations | null;
   if (!gig) notFound();
 
   return (
@@ -46,8 +39,8 @@ export default async function EditGigPage({
       </div>
 
       <GigForm
-        artists={(artists as Artist[]) ?? []}
-        venues={(venues as Venue[]) ?? []}
+        artists={artists}
+        venues={venues}
         action={updateGig}
         initialGig={gig}
         submitLabel="Wijzigingen opslaan"

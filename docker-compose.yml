@@ -1,0 +1,51 @@
+# The full GigGlobe stack: the Next.js app + its own PostgreSQL database.
+# This is what runs on the ZimaOS server; it also runs locally for testing.
+#
+# First-time setup (see README):
+#   1. cp .env.example .env  and fill in the values
+#   2. docker compose up -d db          # start the database
+#   3. npm run db:migrate               # create the tables
+#   4. npm run seed -- you@example.com yourpassword
+#   5. docker compose up --build        # start the whole stack
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-gigglobe}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gigglobe}
+      POSTGRES_DB: ${POSTGRES_DB:-gigglobe}
+    ports:
+      # Exposed so you can run migrations/seed from the host.
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-gigglobe}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Inside the compose network the database host is "db".
+      DATABASE_URL: postgres://${POSTGRES_USER:-gigglobe}:${POSTGRES_PASSWORD:-gigglobe}@db:5432/${POSTGRES_DB:-gigglobe}
+      AUTH_SECRET: ${AUTH_SECRET}
+      AUTH_URL: ${AUTH_URL:-http://localhost:3000}
+      AUTH_TRUST_HOST: "true"
+      MEDIA_DIR: /media
+    ports:
+      - "3000:3000"
+    volumes:
+      # Uploaded media lives on a bind mount so it survives image rebuilds.
+      # (Upload features come in a later phase; the folder is reserved now.)
+      - ${MEDIA_DIR:-./media}:/media
+
+volumes:
+  db_data:
