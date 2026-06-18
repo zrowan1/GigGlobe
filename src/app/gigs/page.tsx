@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronRight, Plus } from "lucide-react";
+import { ChevronRight, Globe, Plus } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { listGigs } from "@/lib/db/queries";
@@ -27,7 +27,14 @@ export default async function GigsPage() {
   return (
     <main className="mx-auto w-full max-w-2xl p-4">
       <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Optredens</h1>
+        <div className="flex items-center gap-2">
+          <Button asChild variant="ghost" size="icon">
+            <Link href="/" aria-label="Terug naar de kaart">
+              <Globe />
+            </Link>
+          </Button>
+          <h1 className="text-2xl font-semibold">Optredens</h1>
+        </div>
         <Button asChild>
           <Link href="/gigs/new">
             <Plus /> Nieuw

@@ -168,6 +168,7 @@ export async function createGig(
   }
 
   revalidatePath("/gigs");
+  revalidatePath("/");
   redirect("/gigs");
 }
 
@@ -201,6 +202,7 @@ export async function updateGig(
 
   revalidatePath("/gigs");
   revalidatePath(`/gigs/${gigId}`);
+  revalidatePath("/");
   redirect(`/gigs/${gigId}`);
 }
 
@@ -214,5 +216,6 @@ export async function deleteGig(formData: FormData): Promise<void> {
   await deleteGigById(userId, gigId);
 
   revalidatePath("/gigs");
+  revalidatePath("/");
   redirect("/gigs");
 }

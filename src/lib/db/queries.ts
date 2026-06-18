@@ -6,11 +6,18 @@
 // The helpers return the snake_case shapes from src/types (Artist, Venue,
 // GigWithRelations) so the rest of the app keeps working unchanged.
 
-import { and, desc, eq, ilike } from "drizzle-orm";
+import { and, countDistinct, desc, eq, ilike, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { artists, gigs, venues } from "@/lib/db/schema";
-import type { Artist, GigWithRelations, Venue, VenueType } from "@/types";
+import type {
+  Artist,
+  GigStats,
+  GigWithRelations,
+  Venue,
+  VenueType,
+  VenueWithGigCount,
+} from "@/types";
 
 // --- Reads ----------------------------------------------------------------
 
@@ -64,6 +71,50 @@ export async function getGig(
     .limit(1);
 
   return rows.length ? toGigWithRelations(rows[0]) : null;
+}
+
+// All venues plus the number of gigs at each, for the map pins. A LEFT JOIN
+// keeps venues that have no gigs yet (gig_count = 0); GROUP BY collapses the
+// joined gig rows back to one row per venue. Postgres COUNT() comes back as a
+// bigint string, so we cast it to int.
+export async function listVenuesWithGigCounts(
+  userId: string
+): Promise<VenueWithGigCount[]> {
+  const rows = await db
+    .select({
+      venue: venues,
+      gigCount: sql<number>`count(${gigs.id})::int`,
+    })
+    .from(venues)
+    .leftJoin(gigs, eq(gigs.venueId, venues.id))
+    .where(eq(venues.userId, userId))
+    .groupBy(venues.id)
+    .orderBy(venues.name);
+
+  return rows.map((row) => ({ ...toVenue(row.venue), gig_count: row.gigCount }));
+}
+
+// The three headline numbers for the map's stats counter. Each is a single
+// scoped COUNT; countries counts the distinct, non-null venue countries.
+export async function getGigStats(userId: string): Promise<GigStats> {
+  const [gigRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(gigs)
+    .where(eq(gigs.userId, userId));
+
+  const [venueRow] = await db
+    .select({
+      venues: sql<number>`count(*)::int`,
+      countries: countDistinct(venues.country),
+    })
+    .from(venues)
+    .where(eq(venues.userId, userId));
+
+  return {
+    gigs: gigRow?.count ?? 0,
+    venues: venueRow?.venues ?? 0,
+    countries: Number(venueRow?.countries ?? 0),
+  };
 }
 
 // --- Writes ---------------------------------------------------------------
