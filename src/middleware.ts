@@ -1,9 +1,10 @@
-import { type NextRequest } from "next/server";
-import { updateSession } from "@/lib/supabase/middleware";
+import NextAuth from "next-auth";
 
-export async function middleware(request: NextRequest) {
-  return await updateSession(request);
-}
+import { authConfig } from "@/lib/auth.config";
+
+// Auth.js provides the middleware from the edge-safe config. It runs the
+// `authorized` callback on every matched request to enforce login.
+export const { auth: middleware } = NextAuth(authConfig);
 
 export const config = {
   matcher: [

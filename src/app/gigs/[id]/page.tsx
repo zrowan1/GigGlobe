@@ -1,12 +1,12 @@
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
+import { getGig } from "@/lib/db/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DeleteGigButton } from "@/components/gigs/delete-gig-button";
-import type { GigWithRelations } from "@/types";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("nl-NL", {
@@ -25,17 +25,10 @@ export default async function GigDetailPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const supabase = await createClient();
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
 
-  const { data } = await supabase
-    .from("gigs")
-    .select(
-      "*, artist:artists(id,name), venue:venues(id,name,type,city,country,latitude,longitude)"
-    )
-    .eq("id", id)
-    .maybeSingle();
-
-  const gig = data as GigWithRelations | null;
+  const gig = await getGig(session.user.id, id);
   if (!gig) notFound();
 
   const location = [gig.venue.city, gig.venue.country].filter(Boolean).join(", ");

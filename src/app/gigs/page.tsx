@@ -1,10 +1,11 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { ChevronRight, Plus } from "lucide-react";
 
-import { createClient } from "@/lib/supabase/server";
+import { auth } from "@/lib/auth";
+import { listGigs } from "@/lib/db/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import type { GigWithRelations } from "@/types";
 
 // Format an ISO date ("2026-06-13") as a readable Dutch date.
 function formatDate(iso: string): string {
@@ -18,16 +19,10 @@ function formatDate(iso: string): string {
 // List of all your gigs, newest first. This is the page you land on after
 // adding one, so it doubles as the "did it work?" confirmation.
 export default async function GigsPage() {
-  const supabase = await createClient();
+  const session = await auth();
+  if (!session?.user?.id) redirect("/login");
 
-  const { data } = await supabase
-    .from("gigs")
-    .select(
-      "*, artist:artists(id,name), venue:venues(id,name,type,city,country,latitude,longitude)"
-    )
-    .order("gig_date", { ascending: false });
-
-  const gigs = (data as GigWithRelations[] | null) ?? [];
+  const gigs = await listGigs(session.user.id);
 
   return (
     <main className="mx-auto w-full max-w-2xl p-4">

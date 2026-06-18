@@ -11,8 +11,8 @@ Next.js 15 · PostgreSQL (self-hosted) + Drizzle ORM · Auth.js (e-mail + wachtw
 ## Status
 
 - ✅ Fase 0 — Fundament (Next.js 15, login, datamodel)
-- 🔄 Fase R — Migratie naar selfhost (Supabase/Vercel eruit, PostgreSQL + Drizzle + Auth.js + Docker erin) — **huidige focus**
-- ⬜ Fase 1 — Optredens toevoegen en bekijken
+- ✅ Fase R — Migratie naar selfhost (Supabase/Vercel eruit, PostgreSQL + Drizzle + Auth.js + Docker erin)
+- 🔄 Fase 1 — Optredens toevoegen en bekijken (CRUD werkt al; verfijning volgt)
 - ⬜ Fase 2 — De kaart en globe
 - ⬜ Fase 3 — Foto's en video's
 - ⬜ Fase 4 — PWA & afwerking
@@ -20,24 +20,31 @@ Next.js 15 · PostgreSQL (self-hosted) + Drizzle ORM · Auth.js (e-mail + wachtw
 ## Lokaal draaien
 
 ```bash
-docker compose up -d db   # lokale PostgreSQL opstarten
-npm install               # eenmalig: installeert alle dependencies
-npm run dev               # start de app op http://localhost:3000
+cp .env.example .env         # eenmalig: vul de waarden in (zie hieronder)
+npm install                  # eenmalig: installeert alle dependencies
+docker compose up -d db      # lokale PostgreSQL opstarten
+npm run db:migrate           # eenmalig: maakt de tabellen aan
+npm run seed -- jij@voorbeeld.nl jouw-wachtwoord   # maakt je login-account
+npm run dev                  # start de app op http://localhost:3000
 ```
 
-Je hebt een `.env.local` nodig (zie `.env.example`) met o.a. `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` en `MEDIA_DIR`. Deze wordt bewust niet meegecommit.
+Je hebt een `.env` nodig (zie `.env.example`) met `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` en `MEDIA_DIR`. Deze wordt bewust niet meegecommit (`.env.local` werkt ook en wint van `.env`). Genereer een `AUTH_SECRET` met `openssl rand -base64 32`. Hetzelfde `.env`-bestand wordt ook door `docker compose` gebruikt.
+
+Inloggen gaat met **e-mailadres + wachtwoord**. Er is (nog) geen registratiepagina: accounts maak je aan met `npm run seed`. Dat commando opnieuw draaien met hetzelfde e-mailadres reset het wachtwoord.
 
 ## Selfhosten op ZimaOS
 
 De hele app draait als containers via `docker-compose` (de Next.js-app + een PostgreSQL-database):
 
 ```bash
-docker compose build
-docker compose up -d
+docker compose up -d db      # start eerst alleen de database
+npm run db:migrate           # eenmalig: maakt de tabellen aan
+npm run seed -- jij@voorbeeld.nl jouw-wachtwoord   # eenmalig: login-account
+docker compose up -d --build # bouw en start de hele stack
 ```
 
 Aandachtspunten:
 
 - **Media** staan op een lokaal volume (`MEDIA_DIR`); mount die map zodat foto's en video's updates overleven.
 - **Database** staat op een eigen volume zodat je data behouden blijft.
-- Zet de app achter een **reverse proxy** (ZimaOS-proxy, Traefik of Caddy) met HTTPS en een eigen (sub)domein. Geef `X-Forwarded-Host` en `X-Forwarded-Proto` door en zet `AUTH_URL` op dat publieke domein.
+- Zet de app achter een **reverse proxy** (ZimaOS-proxy, Traefik of Caddy) met HTTPS en een eigen (sub)domein. Geef `X-Forwarded-Host` en `X-Forwarded-Proto` door en zet `AUTH_URL` op dat publieke domein. De app draait met `AUTH_TRUST_HOST=true` zodat Auth.js de proxy-host vertrouwt.
