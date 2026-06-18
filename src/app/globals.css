@@ -79,3 +79,26 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* --- Neon Nights map popup --------------------------------------------- */
+/* Override MapLibre's default white popup with a dark, glowing neon card so
+   it matches the synthwave globe. */
+.neon-popup .maplibregl-popup-content {
+  background: rgba(10, 6, 19, 0.92);
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  border-radius: 0.625rem;
+  box-shadow: 0 0 20px rgba(255, 45, 149, 0.35);
+  backdrop-filter: blur(4px);
+  padding: 0.75rem 0.875rem;
+}
+
+.neon-popup .maplibregl-popup-close-button {
+  color: #cbb8ff;
+  font-size: 1.1rem;
+  padding-right: 0.25rem;
+}
+
+.neon-popup .maplibregl-popup-tip {
+  border-top-color: rgba(10, 6, 19, 0.92) !important;
+  border-bottom-color: rgba(10, 6, 19, 0.92) !important;
+}

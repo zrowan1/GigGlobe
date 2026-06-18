@@ -25,9 +25,11 @@ export default async function Home() {
 
       {/* Brand + stats counter, top-left. */}
       <div className="pointer-events-none absolute left-2 top-2 z-10 flex flex-col gap-2">
-        <div className="pointer-events-auto rounded-lg border bg-background/90 px-3 py-2 shadow-sm backdrop-blur">
-          <p className="text-sm font-semibold">🌍 GigGlobe</p>
-          <p className="text-xs text-muted-foreground">
+        <div className="pointer-events-auto rounded-lg border border-[#00e5ff]/40 bg-[#0a0613]/85 px-3 py-2 shadow-[0_0_18px_rgba(255,45,149,0.3)] backdrop-blur">
+          <p className="text-sm font-semibold tracking-wide text-[#ff7ac6]">
+            🌍 GigGlobe
+          </p>
+          <p className="text-xs text-[#cbb8ff]">
             {stats.gigs} {stats.gigs === 1 ? "optreden" : "optredens"} ·{" "}
             {stats.venues} {stats.venues === 1 ? "venue" : "venues"} ·{" "}
             {stats.countries} {stats.countries === 1 ? "land" : "landen"}
@@ -55,10 +57,10 @@ export default async function Home() {
       {/* Empty state: no venues yet. */}
       {venues.length === 0 && (
         <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-4">
-          <div className="pointer-events-auto max-w-xs rounded-xl border bg-background/95 p-6 text-center shadow-lg backdrop-blur">
+          <div className="pointer-events-auto max-w-xs rounded-xl border border-[#00e5ff]/40 bg-[#0a0613]/90 p-6 text-center shadow-[0_0_28px_rgba(255,45,149,0.35)] backdrop-blur">
             <p className="text-4xl">🎤</p>
-            <p className="mt-3 font-medium">Nog geen optredens</p>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-3 font-medium text-[#ff7ac6]">Nog geen optredens</p>
+            <p className="mt-1 text-sm text-[#cbb8ff]">
               Voeg je eerste concert of festival toe — dan verschijnt het hier
               als pin op de wereld.
             </p>
