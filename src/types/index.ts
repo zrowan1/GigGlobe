@@ -55,3 +55,17 @@ export interface GigWithRelations extends Gig {
     "id" | "name" | "type" | "city" | "country" | "latitude" | "longitude"
   >;
 }
+
+// A venue plus how many gigs took place there. Feeds the map pins: one pin
+// per venue, sized/labelled by the number of gigs.
+export interface VenueWithGigCount extends Venue {
+  gig_count: number;
+}
+
+// Top-level numbers for the map's stats counter ("X optredens · Y venues · Z
+// landen").
+export interface GigStats {
+  gigs: number;
+  venues: number;
+  countries: number;
+}

@@ -60,17 +60,19 @@ Je voegt een optreden toe (artiest + datum + venue/festival), de locatie verschi
 
 ---
 
-## Fase 2 — De kaart en globe (2 sessies)
+## Fase 2 — De kaart en globe (2 sessies) ✅ (afgerond)
 
 **Doel: het visuele hart van de app.**
 
-- [ ] MapLibre kaart als homepagina, met een pin per unieke venue
-- [ ] Globe-projectie: op desktop/tablet een draaibare 3D-globe, op mobiel een platte kaart (performance)
-- [ ] Pin aanklikken → popup met venue-naam + aantal optredens daar → doorklikken naar de optredens
-- [ ] Clustering: meerdere venues dicht bij elkaar worden samengevoegd bij uitzoomen
-- [ ] Tellertje/statistiek: "X optredens · Y venues · Z landen"
+- [x] MapLibre kaart als homepagina, met een pin per unieke venue
+- [x] Globe-projectie via MapLibre v5 `projection: 'globe'`: van veraf een draaibare 3D-globe die bij inzoomen vanzelf plat wordt, plus een knopje om handmatig globe ↔ plat te wisselen
+- [x] Pin aanklikken → popup met venue-naam + aantal optredens daar → doorklikken naar de optredens
+- [x] Clustering: meerdere venues dicht bij elkaar worden samengevoegd bij uitzoomen (MapLibre's ingebouwde GeoJSON-clustering, geen extra library)
+- [x] Tellertje/statistiek: "X optredens · Y venues · Z landen"
 
-**Klaar wanneer:** je opent de app en ziet in één oogopslag je hele concertgeschiedenis op de wereld.
+**Kaarttegels:** OpenFreeMap (gratis vector-tegels, geen API-sleutel, geen account) — past bij het selfhost-principe. De stijl wordt op het laden van de kaart herkleurd naar GigGlobe's donkere thema via `src/lib/map/style.ts` (`applyArtStyle`); pas de `ART_STYLE`-palette daar aan om de look te veranderen.
+
+**Klaar wanneer:** je opent de app en ziet in één oogopslag je hele concertgeschiedenis op de wereld. ✅
 
 ---
 
@@ -123,7 +125,7 @@ Ideeën voor later, in volgorde van hoe vet ze zijn:
 Fase 0: Fundament          ████ ~1-2 sessies
 Fase R: Migratie selfhost  ██████ ~2-3 sessies
 Fase 1: Optredens CRUD     ████████ ~2-3 sessies
-Fase 2: Kaart & globe      ██████ ~2 sessies
+Fase 2: Kaart & globe      ██████ ~2 sessies ✅
 Fase 3: Media uploads      ██████ ~2 sessies
 Fase 4: PWA & polish       ████ ~1-2 sessies
 ```
@@ -132,7 +134,7 @@ Fase 4: PWA & polish       ████ ~1-2 sessies
 
 ## Eerste concrete stap
 
-Fase R is afgerond: de code draait nu op de selfhost-stack (Drizzle + Postgres + Auth.js + Docker). De eerstvolgende inhoudelijke klus is **Fase 2 — de kaart en globe**, of het afronden van de laatste verfijningen in Fase 1.
+Fase R en Fase 2 zijn afgerond: de code draait op de selfhost-stack (Drizzle + Postgres + Auth.js + Docker) en de home page is nu de interactieve globe met pins. De eerstvolgende inhoudelijke klus is **Fase 3 — foto's en video's** (media-upload naar het volume).
 
 Om de huidige app lokaal te draaien:
 

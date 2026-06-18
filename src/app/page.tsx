@@ -1,46 +1,75 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
+import { LogOut, Plus } from "lucide-react";
 
 import { auth } from "@/lib/auth";
 import { signOut } from "@/app/actions";
+import { getGigStats, listVenuesWithGigCounts } from "@/lib/db/queries";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { WorldMapLoader } from "@/components/map/world-map-loader";
 
-// Home page. In Phase 2 this becomes the map/globe.
-// For now it proves that login works and shows who you are.
+// Home page = the world map. Every venue shows up as a pin on the globe, with
+// a stats counter and quick links overlaid on top.
 export default async function Home() {
   const session = await auth();
-  const user = session?.user;
+  if (!session?.user?.id) redirect("/login");
+
+  const [venues, stats] = await Promise.all([
+    listVenuesWithGigCounts(session.user.id),
+    getGigStats(session.user.id),
+  ]);
 
   return (
-    <main className="flex min-h-svh flex-col items-center justify-center gap-6 p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle className="text-2xl">🌍 GigGlobe</CardTitle>
-          <CardDescription>
-            Je bent ingelogd als <strong>{user?.email}</strong>
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <p className="text-sm text-muted-foreground">
-            Hier komt straks de wereldkaart met al je optredens. Bekijk
-            voorlopig je optredens in de lijst.
+    <main className="relative h-svh w-full overflow-hidden">
+      <WorldMapLoader venues={venues} />
+
+      {/* Brand + stats counter, top-left. */}
+      <div className="pointer-events-none absolute left-2 top-2 z-10 flex flex-col gap-2">
+        <div className="pointer-events-auto rounded-lg border bg-background/90 px-3 py-2 shadow-sm backdrop-blur">
+          <p className="text-sm font-semibold">🌍 GigGlobe</p>
+          <p className="text-xs text-muted-foreground">
+            {stats.gigs} {stats.gigs === 1 ? "optreden" : "optredens"} ·{" "}
+            {stats.venues} {stats.venues === 1 ? "venue" : "venues"} ·{" "}
+            {stats.countries} {stats.countries === 1 ? "land" : "landen"}
           </p>
-          <Button asChild className="w-full">
-            <Link href="/gigs">Mijn optredens</Link>
+        </div>
+      </div>
+
+      {/* Quick actions, bottom. */}
+      <div className="absolute inset-x-2 bottom-2 z-10 flex items-center justify-center gap-2">
+        <Button asChild size="sm">
+          <Link href="/gigs/new">
+            <Plus /> Nieuw
+          </Link>
+        </Button>
+        <Button asChild size="sm" variant="secondary">
+          <Link href="/gigs">Mijn optredens</Link>
+        </Button>
+        <form action={signOut}>
+          <Button size="sm" variant="outline" type="submit" aria-label="Uitloggen">
+            <LogOut />
           </Button>
-          <form action={signOut}>
-            <Button variant="outline" type="submit" className="w-full">
-              Uitloggen
+        </form>
+      </div>
+
+      {/* Empty state: no venues yet. */}
+      {venues.length === 0 && (
+        <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center p-4">
+          <div className="pointer-events-auto max-w-xs rounded-xl border bg-background/95 p-6 text-center shadow-lg backdrop-blur">
+            <p className="text-4xl">🎤</p>
+            <p className="mt-3 font-medium">Nog geen optredens</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Voeg je eerste concert of festival toe — dan verschijnt het hier
+              als pin op de wereld.
+            </p>
+            <Button asChild className="mt-4 w-full">
+              <Link href="/gigs/new">
+                <Plus /> Eerste optreden toevoegen
+              </Link>
             </Button>
-          </form>
-        </CardContent>
-      </Card>
+          </div>
+        </div>
+      )}
     </main>
   );
 }
