@@ -14,7 +14,7 @@ const WorldMap = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="flex h-full w-full items-center justify-center bg-[#12161f] text-sm text-muted-foreground">
+      <div className="flex h-full w-full items-center justify-center bg-[#0a0613] text-sm text-[#cbb8ff]">
         Kaart laden…
       </div>
     ),
