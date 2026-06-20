@@ -76,18 +76,25 @@ Je voegt een optreden toe (artiest + datum + venue/festival), de locatie verschi
 
 ---
 
-## Fase 3 — Foto's en video's (2 sessies)
+## Fase 3 — Foto's en video's (2 sessies) ✅ (afgerond)
 
 **Doel: herinneringen vastleggen per optreden.**
 
-- [ ] Upload vanaf de detailpagina: meerdere foto's/video's tegelijk, rechtstreeks vanaf je telefoon (camera roll), naar het media-volume
-- [ ] Progress bar tijdens upload; grote video's gestreamd naar schijf (niet volledig in geheugen)
-- [ ] Thumbnails genereren voor foto's (server-side, bijv. met `sharp`)
-- [ ] Media-galerij op de detailpagina: grid van thumbnails, tikken voor fullscreen lightbox
-- [ ] Video's afspelen met poster-frame en play-knop (iOS-proof)
-- [ ] Media verwijderen (bestand van het volume én rij uit de database)
+- [x] Upload vanaf de detailpagina: meerdere foto's/video's tegelijk, rechtstreeks vanaf je telefoon (camera roll), naar het media-volume
+- [x] Progress bar tijdens upload; grote video's gestreamd naar schijf (niet volledig in geheugen)
+- [x] Thumbnails genereren voor foto's (server-side, met `sharp`)
+- [x] Media-galerij op de detailpagina: grid van thumbnails, tikken voor fullscreen lightbox
+- [x] Video's afspelen met play-knop (iOS-proof: native `<video playsInline>`, geen autoplay; bewust géén ffmpeg/poster-frames om de image licht te houden)
+- [x] Media verwijderen (bestand van het volume én rij uit de database)
 
-**Klaar wanneer:** je staat op een festival, voegt het optreden toe en uploadt direct drie foto's vanaf je telefoon.
+**Aanpak:** upload via een streaming Route Handler (`POST /api/media/upload`) zodat grote video's
+niet in het geheugen komen en de client via `XMLHttpRequest` een echte progress bar krijgt.
+Serveren via geauthenticeerde, user-scoped routes (`GET /api/media/[id]` met Range-support, plus
+`/thumb`) — bestanden staan buiten `public/`. Opslag onder `MEDIA_DIR` als
+`<userId>/<gigId>/<mediaId>.<ext>`. Bij het verwijderen van een heel optreden worden de media
+(rijen + bestanden) nu meegenomen.
+
+**Klaar wanneer:** je staat op een festival, voegt het optreden toe en uploadt direct drie foto's vanaf je telefoon. ✅
 
 ---
 
@@ -126,7 +133,7 @@ Fase 0: Fundament          ████ ~1-2 sessies
 Fase R: Migratie selfhost  ██████ ~2-3 sessies
 Fase 1: Optredens CRUD     ████████ ~2-3 sessies
 Fase 2: Kaart & globe      ██████ ~2 sessies ✅
-Fase 3: Media uploads      ██████ ~2 sessies
+Fase 3: Media uploads      ██████ ~2 sessies ✅
 Fase 4: PWA & polish       ████ ~1-2 sessies
 ```
 
@@ -134,7 +141,7 @@ Fase 4: PWA & polish       ████ ~1-2 sessies
 
 ## Eerste concrete stap
 
-Fase R en Fase 2 zijn afgerond: de code draait op de selfhost-stack (Drizzle + Postgres + Auth.js + Docker) en de home page is nu de interactieve globe met pins. De eerstvolgende inhoudelijke klus is **Fase 3 — foto's en video's** (media-upload naar het volume).
+Fase R, Fase 2 en Fase 3 zijn afgerond: de code draait op de selfhost-stack (Drizzle + Postgres + Auth.js + Docker), de home page is de interactieve globe met pins, en per optreden kun je foto's en video's uploaden, bekijken (lightbox) en verwijderen. De eerstvolgende inhoudelijke klus is **Fase 4 — PWA & afwerking**.
 
 Om de huidige app lokaal te draaien:
 

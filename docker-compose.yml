@@ -43,8 +43,9 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Uploaded media lives on a bind mount so it survives image rebuilds.
-      # (Upload features come in a later phase; the folder is reserved now.)
+      # Uploaded photos/videos live on a bind mount so they survive image
+      # rebuilds. The app runs as uid 1001, so this folder must be writable by
+      # that user — see the README ("chown -R 1001:1001 ./media").
       - ${MEDIA_DIR:-./media}:/media
 
 volumes:

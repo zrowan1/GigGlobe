@@ -8,11 +8,13 @@ import {
   createArtist,
   createVenue,
   deleteGigById,
+  deleteMediaByGig,
   findArtistByName,
   insertGig,
   updateGigById,
 } from "@/lib/db/queries";
 import { searchPlaces, type GeoResult } from "@/lib/geocoding";
+import { removeFiles } from "@/lib/media/storage";
 import type { VenueType } from "@/types";
 
 // State returned by the create/update actions. When something goes wrong we
@@ -207,11 +209,19 @@ export async function updateGig(
 }
 
 // Delete a gig. The query is scoped to the user, so you can only delete your own.
+// The media FK has no ON DELETE CASCADE, so we first remove the gig's media
+// rows (and the files on disk) — otherwise the gig delete would fail on the
+// constraint and leave orphaned files behind.
 export async function deleteGig(formData: FormData): Promise<void> {
   const gigId = String(formData.get("gigId") ?? "").trim();
   if (!gigId) return;
 
   const userId = await requireUserId();
+
+  const removedMedia = await deleteMediaByGig(userId, gigId);
+  await removeFiles(
+    ...removedMedia.flatMap((m) => [m.storage_path, m.thumbnail_path])
+  );
 
   await deleteGigById(userId, gigId);
 

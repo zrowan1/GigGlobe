@@ -8,6 +8,13 @@
       "when": 1781805456382,
       "tag": "0000_useful_whistler",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1781945395925,
+      "tag": "0001_slow_black_cat",
+      "breakpoints": true
     }
   ]
 }
