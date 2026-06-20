@@ -16,7 +16,11 @@ export const config = {
      * which silently truncated large video uploads. That route streams the body
      * straight to disk and does its own `auth()` check, so it neither needs the
      * middleware nor should be subject to the body cap.
+     *
+     * `sw.js`, the Serwist worker chunks and `manifest.webmanifest` are public
+     * PWA assets: they must stay fetchable without a session so the app can be
+     * installed, otherwise the auth redirect would serve login HTML instead.
      */
-    "/((?!api/media/upload|_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
+    "/((?!api/media/upload|_next/static|_next/image|favicon.ico|sw.js|swe-worker-.*\\.js|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

@@ -45,18 +45,18 @@ Je voegt een optreden toe (artiest + datum + venue/festival), de locatie verschi
 
 ---
 
-## Fase 1 — Optredens toevoegen en bekijken (2-3 sessies)
+## Fase 1 — Optredens toevoegen en bekijken (2-3 sessies) ✅ (afgerond)
 
 **Doel: de kern werkt, zonder kaart en zonder media.**
 
-- [ ] Formulier "Nieuw optreden": artiest, datum, venue/festival-naam, type (venue of festival)
-- [ ] Venue-zoekfunctie met Nominatim: je typt "Ziggo Dome" en de app vindt automatisch de coördinaten
-- [ ] Hergebruik: bestaande artiesten en venues verschijnen als suggesties (geen dubbele "Kendrick Lamar" in je database)
-- [ ] Lijstweergave van alle optredens, gesorteerd op datum (nieuwste eerst)
-- [ ] Detailpagina per optreden
-- [ ] Optreden bewerken en verwijderen
+- [x] Formulier "Nieuw optreden": artiest, datum, venue/festival-naam, type (venue of festival)
+- [x] Venue-zoekfunctie met Nominatim: je typt "Ziggo Dome" en de app vindt automatisch de coördinaten
+- [x] Hergebruik: bestaande artiesten en venues verschijnen als suggesties (geen dubbele "Kendrick Lamar" in je database)
+- [x] Lijstweergave van alle optredens, gesorteerd op datum (nieuwste eerst)
+- [x] Detailpagina per optreden
+- [x] Optreden bewerken en verwijderen
 
-**Klaar wanneer:** je kunt op je telefoon binnen 30 seconden een optreden toevoegen en terugzien in de lijst.
+**Klaar wanneer:** je kunt op je telefoon binnen 30 seconden een optreden toevoegen en terugzien in de lijst. ✅
 
 ---
 
@@ -98,17 +98,28 @@ Serveren via geauthenticeerde, user-scoped routes (`GET /api/media/[id]` met Ran
 
 ---
 
-## Fase 4 — PWA & afwerking (1-2 sessies)
+## Fase 4 — PWA & afwerking (1-2 sessies) ✅ (afgerond)
 
 **Doel: voelt als een echte app.**
 
-- [ ] PWA-manifest + service worker: installeerbaar op homescreen, eigen icoon, splash screen
-- [ ] Responsive layout afmaken: desktop toont kaart en lijst naast elkaar, mobiel als tabs
-- [ ] Donkere modus (kaart heeft sowieso een dark style — past mooi)
-- [ ] Lege-staat schermen ("Nog geen optredens — voeg je eerste toe!")
-- [ ] Loading states en error handling overal netjes
+- [x] PWA-manifest + service worker: installeerbaar op homescreen, eigen icoon, splash screen
+- [x] Responsive layout afmaken: desktop toont kaart en lijst naast elkaar, mobiel als tabs
+- [x] Donkere modus (kaart heeft sowieso een dark style — past mooi)
+- [x] Lege-staat schermen ("Nog geen optredens — voeg je eerste toe!")
+- [x] Loading states en error handling overal netjes
 
-**Klaar wanneer:** de app staat als icoon op je telefoon en is niet van een native app te onderscheiden.
+**Aanpak:** PWA via **`@serwist/next`** — de service worker wordt uit `src/app/sw.ts`
+gebouwd naar `public/sw.js` (uit in dev), het manifest komt uit `src/app/manifest.ts`,
+en de neon-globe iconen worden met `sharp` gegenereerd via `npm run icons`
+(`scripts/generate-icons.ts` → `public/icons/`). Donkere modus met licht/donker-toggle
+via **`next-themes`** (standaard donker, voorkeur onthouden); het dark-palette stond al
+in `globals.css`. De home is nu één gecombineerde view (`src/components/home/home-view.tsx`):
+desktop kaart + lijst naast elkaar, mobiel als tabs (de kaart blijft gemount bij
+tab-wissel). Loading/error/not-found via `loading.tsx`, `error.tsx`, `not-found.tsx`.
+De middleware-matcher laat `sw.js`, de Serwist-chunks en `manifest.webmanifest` bewust
+door zonder login, zodat de PWA installeerbaar blijft.
+
+**Klaar wanneer:** de app staat als icoon op je telefoon en is niet van een native app te onderscheiden. ✅
 
 ---
 
@@ -130,18 +141,18 @@ Ideeën voor later, in volgorde van hoe vet ze zijn:
 
 ```
 Fase 0: Fundament          ████ ~1-2 sessies
-Fase R: Migratie selfhost  ██████ ~2-3 sessies
-Fase 1: Optredens CRUD     ████████ ~2-3 sessies
+Fase R: Migratie selfhost  ██████ ~2-3 sessies ✅
+Fase 1: Optredens CRUD     ████████ ~2-3 sessies ✅
 Fase 2: Kaart & globe      ██████ ~2 sessies ✅
 Fase 3: Media uploads      ██████ ~2 sessies ✅
-Fase 4: PWA & polish       ████ ~1-2 sessies
+Fase 4: PWA & polish       ████ ~1-2 sessies ✅
 ```
 
 **Belangrijk:** na fase 1 is de app al bruikbaar. Na fase 2 is hij al vet. Niet alles hoeft af voordat je hem gebruikt — begin met je eerste echte optredens invoeren zodra fase 1 staat, dan test je meteen met echte data.
 
 ## Eerste concrete stap
 
-Fase R, Fase 2 en Fase 3 zijn afgerond: de code draait op de selfhost-stack (Drizzle + Postgres + Auth.js + Docker), de home page is de interactieve globe met pins, en per optreden kun je foto's en video's uploaden, bekijken (lightbox) en verwijderen. De eerstvolgende inhoudelijke klus is **Fase 4 — PWA & afwerking**.
+Fase R, 1, 2, 3 en 4 zijn afgerond: de code draait op de selfhost-stack (Drizzle + Postgres + Auth.js + Docker), de home page is de gecombineerde kaart + lijst (desktop naast elkaar, mobiel als tabs), per optreden kun je foto's en video's uploaden/bekijken/verwijderen, en de app is een installeerbare PWA met eigen neon-icoon, donkere modus (met toggle) en nette loading/error-schermen. De inhoudelijke kern is nu compleet — wat resteert is **Fase 5 (leuke extra's, backlog)**: bijv. een jaaroverzicht, Spotify- of Setlist.fm-koppeling, een deelbare publieke globe of een statistiekenpagina.
 
 Om de huidige app lokaal te draaien:
 
