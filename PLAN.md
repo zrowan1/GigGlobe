@@ -119,6 +119,14 @@ tab-wissel). Loading/error/not-found via `loading.tsx`, `error.tsx`, `not-found.
 De middleware-matcher laat `sw.js`, de Serwist-chunks en `manifest.webmanifest` bewust
 door zonder login, zodat de PWA installeerbaar blijft.
 
+**Mobiele polish:** rechtsbovenin de kaart deelden de zwevende actieknoppen (Nieuw /
+thema / uitloggen), de MapLibre-zoomknoppen en de globe-toggle dezelfde hoek en liepen
+op telefoons over elkaar. Opgelost door de MapLibre-controls op mobiel onder de
+actieknoppen-rij te duwen (`.maplibregl-ctrl-top-right { margin-top }` in `globals.css`,
+gereset op `lg+`) en de globe-toggle responsive eronder te zetten (`top-44 lg:top-28`),
+zodat alles netjes verticaal stapelt. Op desktop staan de actieknoppen in de zijbalk, dus
+daar verandert niets.
+
 **Klaar wanneer:** de app staat als icoon op je telefoon en is niet van een native app te onderscheiden. ✅
 
 ---
@@ -134,6 +142,36 @@ Ideeën voor later, in volgorde van hoe vet ze zijn:
 - **Statistieken-pagina**: grafieken per jaar, genre, land
 - **Export**: al je data als JSON/CSV downloaden
 - **Vrienden taggen** die mee waren
+
+### Nieuwe kandidaten ter beoordeling
+
+Concrete extra features om uit te kiezen. De inschatting (waarde = hoeveel het toevoegt,
+inspanning = hoeveel werk) is grof bedoeld als hulp bij het prioriteren — niet als belofte.
+
+**Vinden & ordenen**
+
+- **Zoeken & filteren in de lijst** — filter optredens op artiest, jaar, land of type (venue/festival) en zoek op naam. *Waarde: hoog · Inspanning: laag.* De lijst groeit snel; dit is waarschijnlijk de meest dagelijkse winst.
+- **Artiest- en venue-detailpagina's** — klik een artiest aan en zie alle keren dat je 'm zag (met mini-kaart); idem per venue. *Waarde: hoog · Inspanning: midden.* Hergebruikt data die er al is.
+- **Rating & notitie per optreden** — sterren + een vrij notitieveld ("beste gig ooit", wie mee was). *Waarde: midden · Inspanning: laag.* Eén kolom in `gigs` + wat UI.
+- **Vrije tags/labels** — zelf labels toekennen ("met vrienden", "regen", "festivalzomer") en erop filteren. *Waarde: midden · Inspanning: midden.*
+
+**Op de kaart**
+
+- **Concertreis-animatie** — lijnen tussen venues in chronologische volgorde, als een reisroute over de globe die je kunt afspelen. *Waarde: hoog (wow-factor) · Inspanning: midden/hoog.*
+- **Heatmap-laag** — schakelbare warmtelaag die laat zien waar je het vaakst was. *Waarde: midden · Inspanning: laag.* MapLibre heeft een ingebouwd heatmap-type.
+- **Tijdlijn-scrubber** — een schuif onderaan de kaart om door de jaren te scrollen; pins verschijnen naarmate je vooruit gaat. *Waarde: midden/hoog · Inspanning: hoog.*
+
+**Inzicht & herinnering**
+
+- **Jaaroverzicht / "Wrapped"** (zie hierboven) — gedeelde basis met de statistiekenpagina. *Waarde: hoog · Inspanning: midden.*
+- **"Op deze dag"** — toont op de homepagina optredens van vandaag in eerdere jaren. *Waarde: midden · Inspanning: laag.* Leuk in combinatie met PWA-notificaties.
+- **PWA-push-notificaties** — herinneringen via de service worker die er al staat (bijv. "op deze dag" of een aankomend, alvast ingepland optreden). *Waarde: midden · Inspanning: midden/hoog* (push-subscriptions + VAPID-sleutels, selfhost-vriendelijk).
+
+**Beheer & selfhost**
+
+- **Backup & restore** — knop om een archief van database + media te downloaden en terug te zetten; past goed bij het selfhost-principe (jouw data, jouw back-up). *Waarde: hoog · Inspanning: midden.*
+- **Data-export** (zie hierboven, JSON/CSV) — lichter alternatief/voorloper van een volledige backup. *Waarde: midden · Inspanning: laag.*
+- **Bulk-import** — meerdere optredens in één keer toevoegen via CSV (of later vanuit Spotify-geschiedenis). *Waarde: midden · Inspanning: midden.* Handig om je historie in één keer in te laden.
 
 ---
 

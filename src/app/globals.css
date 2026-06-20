@@ -80,6 +80,21 @@
   }
 }
 
+/* --- Map controls on mobile -------------------------------------------- */
+/* On phones the top-right of the map is shared with the floating action
+   buttons (Nieuw / thema / uitloggen), so push MapLibre's own controls down
+   below that row to avoid overlap. On desktop (lg+) those buttons live in the
+   sidebar instead, so the controls stay at the top. */
+.maplibregl-ctrl-top-right {
+  margin-top: 3.25rem;
+}
+
+@media (min-width: 1024px) {
+  .maplibregl-ctrl-top-right {
+    margin-top: 0;
+  }
+}
+
 /* --- Neon Nights map popup --------------------------------------------- */
 /* Override MapLibre's default white popup with a dark, glowing neon card so
    it matches the synthwave globe. */
