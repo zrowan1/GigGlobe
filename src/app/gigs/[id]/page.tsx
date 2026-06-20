@@ -3,10 +3,12 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
 
 import { auth } from "@/lib/auth";
-import { getGig } from "@/lib/db/queries";
+import { getGig, listMediaByGig } from "@/lib/db/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { DeleteGigButton } from "@/components/gigs/delete-gig-button";
+import { MediaGallery } from "@/components/media/media-gallery";
+import { MediaUploader } from "@/components/media/media-uploader";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("nl-NL", {
@@ -30,6 +32,8 @@ export default async function GigDetailPage({
 
   const gig = await getGig(session.user.id, id);
   if (!gig) notFound();
+
+  const media = await listMediaByGig(session.user.id, id);
 
   const location = [gig.venue.city, gig.venue.country].filter(Boolean).join(", ");
 
@@ -58,10 +62,14 @@ export default async function GigDetailPage({
         </CardContent>
       </Card>
 
-      {/* Media gallery placeholder — built in Phase 3. */}
-      <p className="mt-4 text-center text-sm text-muted-foreground">
-        Foto&apos;s en video&apos;s komen hier in een latere fase.
-      </p>
+      {/* Photo/video memories for this gig. */}
+      <section className="mt-6 grid gap-3">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+          Foto&apos;s &amp; video&apos;s
+        </h2>
+        <MediaUploader gigId={gig.id} />
+        <MediaGallery media={media} />
+      </section>
 
       <div className="mt-6 grid gap-3">
         <Button asChild variant="outline" className="w-full">

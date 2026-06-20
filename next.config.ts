@@ -8,6 +8,13 @@ const nextConfig: NextConfig = {
   // parent directory (if there's a stray lockfile higher up) and trace the
   // wrong files into the standalone bundle.
   outputFileTracingRoot: process.cwd(),
+  // Make sure sharp (used for photo thumbnails in the media upload route) and
+  // its native binaries are copied into the standalone bundle. Without this the
+  // app builds fine locally but thumbnail generation can crash in the Docker
+  // image because the native module isn't traced.
+  outputFileTracingIncludes: {
+    "/api/media/upload": ["./node_modules/sharp/**/*", "./node_modules/@img/**/*"],
+  },
 };
 
 export default nextConfig;

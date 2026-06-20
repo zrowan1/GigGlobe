@@ -40,8 +40,11 @@ export interface Media {
   id: string;
   user_id: string;
   gig_id: string;
-  storage_path: string;
+  storage_path: string; // relative to MEDIA_DIR
+  thumbnail_path: string | null; // relative to MEDIA_DIR; null for videos
   media_type: MediaType;
+  width: number | null;
+  height: number | null;
   created_at: string;
 }
 

@@ -45,6 +45,7 @@ docker compose up -d --build # bouw en start de hele stack
 
 Aandachtspunten:
 
-- **Media** staan op een lokaal volume (`MEDIA_DIR`); mount die map zodat foto's en video's updates overleven.
+- **Media** staan op een lokaal volume (`MEDIA_DIR`); mount die map zodat foto's en video's updates overleven. De app draait in de container als gebruiker met uid `1001`, dus de gemounte map moet voor die gebruiker schrijfbaar zijn — eenmalig `chown -R 1001:1001 ./media` (of een andere `MEDIA_DIR`) op de host. Optioneel beperk je de uploadgrootte per bestand met `MEDIA_MAX_UPLOAD_MB` (default 500).
 - **Database** staat op een eigen volume zodat je data behouden blijft.
 - Zet de app achter een **reverse proxy** (ZimaOS-proxy, Traefik of Caddy) met HTTPS en een eigen (sub)domein. Geef `X-Forwarded-Host` en `X-Forwarded-Proto` door en zet `AUTH_URL` op dat publieke domein. De app draait met `AUTH_TRUST_HOST=true` zodat Auth.js de proxy-host vertrouwt.
+- **Grote video-uploads:** sta in de reverse proxy een ruime body-grootte toe, anders blokkeert de proxy de upload vóór de app (bij nginx bijv. `client_max_body_size 600m;` en liefst `proxy_request_buffering off;` zodat ook de proxy streamt in plaats van eerst volledig te bufferen).

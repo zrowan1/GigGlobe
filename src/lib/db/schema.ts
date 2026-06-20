@@ -84,8 +84,11 @@ export const gigs = pgTable(
 );
 
 // media: photos/videos per gig. Files live on a local volume; only the path
-// and metadata live here. Defined now as part of the data model, but the
-// upload/serve features are a later phase (not built yet).
+// and metadata live here. `storagePath`/`thumbnailPath` are paths *relative to*
+// MEDIA_DIR (never absolute) so the volume can move. Photos get a generated
+// webp thumbnail; videos don't (we render them natively), so `thumbnailPath`
+// is nullable. `width`/`height` (photos) let the gallery reserve the right
+// box and avoid layout shift without reading the file.
 export const media = pgTable(
   "media",
   {
@@ -97,7 +100,10 @@ export const media = pgTable(
       .notNull()
       .references(() => gigs.id),
     storagePath: text("storage_path").notNull(),
+    thumbnailPath: text("thumbnail_path"),
     mediaType: text("media_type").notNull(),
+    width: smallint("width"),
+    height: smallint("height"),
     createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   },
   (table) => [

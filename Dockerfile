@@ -34,6 +34,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# Media volume mount point, owned by the runtime user so uploads can be written.
+# NOTE: when MEDIA_DIR is a host *bind mount*, the host folder's ownership wins,
+# so it must be writable by uid 1001 (see README). This chown covers the
+# named-volume / non-bind case.
+RUN mkdir -p /media && chown nextjs:nodejs /media
+
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

@@ -9,11 +9,13 @@
 import { and, countDistinct, desc, eq, ilike, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { artists, gigs, venues } from "@/lib/db/schema";
+import { artists, gigs, media, venues } from "@/lib/db/schema";
 import type {
   Artist,
   GigStats,
   GigWithRelations,
+  Media,
+  MediaType,
   Venue,
   VenueType,
   VenueWithGigCount,
@@ -71,6 +73,36 @@ export async function getGig(
     .limit(1);
 
   return rows.length ? toGigWithRelations(rows[0]) : null;
+}
+
+// All media for one gig, oldest first, so the gallery shows them in upload
+// order. Scoped to the user *and* the gig.
+export async function listMediaByGig(
+  userId: string,
+  gigId: string
+): Promise<Media[]> {
+  const rows = await db
+    .select()
+    .from(media)
+    .where(and(eq(media.userId, userId), eq(media.gigId, gigId)))
+    .orderBy(media.createdAt);
+
+  return rows.map(toMedia);
+}
+
+// Single media row, scoped to the user. This is the ownership gate for the
+// serving and delete paths: if it returns null the caller must 404.
+export async function getMedia(
+  userId: string,
+  id: string
+): Promise<Media | null> {
+  const rows = await db
+    .select()
+    .from(media)
+    .where(and(eq(media.userId, userId), eq(media.id, id)))
+    .limit(1);
+
+  return rows.length ? toMedia(rows[0]) : null;
 }
 
 // All venues plus the number of gigs at each, for the map pins. A LEFT JOIN
@@ -200,6 +232,57 @@ export async function deleteGigById(
     .where(and(eq(gigs.userId, userId), eq(gigs.id, gigId)));
 }
 
+interface MediaValues {
+  gigId: string;
+  storagePath: string;
+  thumbnailPath: string | null;
+  mediaType: MediaType;
+  width: number | null;
+  height: number | null;
+}
+
+export async function insertMedia(
+  userId: string,
+  values: MediaValues
+): Promise<Media> {
+  const [row] = await db
+    .insert(media)
+    .values({ userId, ...values })
+    .returning();
+
+  return toMedia(row);
+}
+
+// Delete a media row, scoped to the user, and return it so the caller knows
+// which files to remove from disk. Returns null if nothing matched (e.g. it
+// wasn't the user's media), in which case no files should be touched.
+export async function deleteMedia(
+  userId: string,
+  id: string
+): Promise<Media | null> {
+  const [row] = await db
+    .delete(media)
+    .where(and(eq(media.userId, userId), eq(media.id, id)))
+    .returning();
+
+  return row ? toMedia(row) : null;
+}
+
+// Delete all media rows for a gig, returning them so the caller can remove the
+// files. Used when deleting a whole gig (the media FK has no ON DELETE CASCADE,
+// so the rows must go first, and the files with them).
+export async function deleteMediaByGig(
+  userId: string,
+  gigId: string
+): Promise<Media[]> {
+  const rows = await db
+    .delete(media)
+    .where(and(eq(media.userId, userId), eq(media.gigId, gigId)))
+    .returning();
+
+  return rows.map(toMedia);
+}
+
 // --- Mapping helpers ------------------------------------------------------
 
 type VenueRow = typeof venues.$inferSelect;
@@ -208,6 +291,20 @@ type GigJoinRow = {
   artist: typeof artists.$inferSelect;
   venue: VenueRow;
 };
+
+function toMedia(m: typeof media.$inferSelect): Media {
+  return {
+    id: m.id,
+    user_id: m.userId,
+    gig_id: m.gigId,
+    storage_path: m.storagePath,
+    thumbnail_path: m.thumbnailPath,
+    media_type: m.mediaType as MediaType,
+    width: m.width,
+    height: m.height,
+    created_at: m.createdAt?.toISOString() ?? "",
+  };
+}
 
 function toVenue(v: VenueRow): Venue {
   return {
