@@ -12,10 +12,12 @@ Next.js 15 · PostgreSQL (self-hosted) + Drizzle ORM · Auth.js (e-mail + wachtw
 
 - ✅ Fase 0 — Fundament (Next.js 15, login, datamodel)
 - ✅ Fase R — Migratie naar selfhost (Supabase/Vercel eruit, PostgreSQL + Drizzle + Auth.js + Docker erin)
-- 🔄 Fase 1 — Optredens toevoegen en bekijken (CRUD werkt al; verfijning volgt)
-- ⬜ Fase 2 — De kaart en globe
-- ⬜ Fase 3 — Foto's en video's
-- ⬜ Fase 4 — PWA & afwerking
+- ✅ Fase 1 — Optredens toevoegen en bekijken (CRUD, Nominatim-zoek, hergebruik artiesten/venues)
+- ✅ Fase 2 — De kaart en globe (MapLibre, neon-globe, clustering, statistieken)
+- ✅ Fase 3 — Foto's en video's (streaming upload, thumbnails, galerij + lightbox)
+- ✅ Fase 4 — PWA & afwerking (installeerbaar, donkere modus, gecombineerde kaart + lijst)
+
+De inhoudelijke kern is compleet. Wat resteert is **Fase 5 (leuke extra's, backlog)** — zie [PLAN.md](./PLAN.md) voor de kandidaat-features.
 
 ## Lokaal draaien
 
