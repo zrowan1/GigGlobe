@@ -7,6 +7,7 @@ import { listArtists, listVenues } from "@/lib/db/queries";
 import { createGig } from "@/app/gigs/actions";
 import { GigForm } from "@/components/gigs/gig-form";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // "New gig" page. It loads your existing artists and venues so the form can
 // suggest them (no duplicate "Kendrick Lamar" in the database).
@@ -28,6 +29,7 @@ export default async function NewGigPage() {
           </Link>
         </Button>
         <h1 className="text-xl font-semibold">Nieuw optreden</h1>
+        <ThemeToggle className="ml-auto shrink-0" />
       </div>
 
       <GigForm

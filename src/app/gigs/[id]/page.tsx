@@ -6,6 +6,7 @@ import { auth } from "@/lib/auth";
 import { getGig, listMediaByGig } from "@/lib/db/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { DeleteGigButton } from "@/components/gigs/delete-gig-button";
 import { MediaGallery } from "@/components/media/media-gallery";
 import { MediaUploader } from "@/components/media/media-uploader";
@@ -46,6 +47,7 @@ export default async function GigDetailPage({
           </Link>
         </Button>
         <h1 className="truncate text-xl font-semibold">{gig.artist.name}</h1>
+        <ThemeToggle className="ml-auto shrink-0" />
       </div>
 
       <Card>

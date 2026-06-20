@@ -7,6 +7,7 @@ import { getGig, listArtists, listVenues } from "@/lib/db/queries";
 import { updateGig } from "@/app/gigs/actions";
 import { GigForm } from "@/components/gigs/gig-form";
 import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 // Edit page. It reuses the exact same GigForm as "new", but pre-filled with
 // the existing gig and wired to the updateGig action.
@@ -36,6 +37,7 @@ export default async function EditGigPage({
           </Link>
         </Button>
         <h1 className="text-xl font-semibold">Optreden bewerken</h1>
+        <ThemeToggle className="ml-auto shrink-0" />
       </div>
 
       <GigForm

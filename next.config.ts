@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import withSerwistInit from "@serwist/next";
 
 const nextConfig: NextConfig = {
   // Build a self-contained Node server (.next/standalone) so the Docker image
@@ -17,4 +18,13 @@ const nextConfig: NextConfig = {
   },
 };
 
-export default nextConfig;
+// Wrap the config with Serwist so it compiles src/app/sw.ts into public/sw.js
+// and registers the service worker. Disabled in development to avoid caching
+// getting in the way while you work.
+const withSerwist = withSerwistInit({
+  swSrc: "src/app/sw.ts",
+  swDest: "public/sw.js",
+  disable: process.env.NODE_ENV === "development",
+});
+
+export default withSerwist(nextConfig);
