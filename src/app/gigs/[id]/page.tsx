@@ -46,7 +46,12 @@ export default async function GigDetailPage({
             <ArrowLeft />
           </Link>
         </Button>
-        <h1 className="truncate text-xl font-semibold">{gig.artist.name}</h1>
+        <Link
+          href={`/artists/${gig.artist_id}`}
+          className="truncate text-xl font-semibold underline decoration-muted-foreground/40 underline-offset-4 hover:decoration-foreground"
+        >
+          {gig.artist.name}
+        </Link>
         <ThemeToggle className="ml-auto shrink-0" />
       </div>
 
@@ -56,6 +61,7 @@ export default async function GigDetailPage({
           <Detail
             label={gig.venue.type === "festival" ? "Festival" : "Venue"}
             value={location ? `${gig.venue.name} — ${location}` : gig.venue.name}
+            href={`/venues/${gig.venue_id}`}
           />
           {gig.rating && (
             <Detail label="Beoordeling" value={"★".repeat(gig.rating)} />
@@ -85,13 +91,30 @@ export default async function GigDetailPage({
   );
 }
 
-function Detail({ label, value }: { label: string; value: string }) {
+function Detail({
+  label,
+  value,
+  href,
+}: {
+  label: string;
+  value: string;
+  href?: string;
+}) {
   return (
     <div className="grid gap-0.5">
       <span className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
         {label}
       </span>
-      <span className="whitespace-pre-wrap">{value}</span>
+      {href ? (
+        <Link
+          href={href}
+          className="whitespace-pre-wrap underline decoration-muted-foreground/40 underline-offset-4 hover:decoration-foreground"
+        >
+          {value}
+        </Link>
+      ) : (
+        <span className="whitespace-pre-wrap">{value}</span>
+      )}
     </div>
   );
 }
