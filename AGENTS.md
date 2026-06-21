@@ -130,12 +130,13 @@ docker-compose.yml         # app + postgres + volumes
 - **Uitleg verplicht:** de eigenaar van dit project is een beginnende developer. Leg bij elke wijziging in normale taal uit wát je hebt gedaan en waaróm. Vermijd jargon of leg het uit als je het gebruikt.
 - **Iteratief werken:** bouw in kleine stappen die elk afzonderlijk testbaar zijn. Geef na elke stap aan hoe de gebruiker het kan testen (welke command, welke URL).
 - **Geen verrassingen:** installeer geen extra dependencies zonder te benoemen wat ze doen en waarom ze nodig zijn.
-- **Environment variables:** alle secrets in `.env.local` (lokaal) en via de `docker-compose`-omgeving (productie), nooit hardcoden. Documenteer nieuwe variabelen in `.env.example`. Verwachte variabelen: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (publieke URL van de app), `MEDIA_DIR` (pad naar het media-volume).
+- **Environment variables:** alle secrets in `.env.local` (lokaal) en via de `docker-compose`-omgeving (productie), nooit hardcoden. Documenteer nieuwe variabelen in `.env.example`. Verwachte variabelen: `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` (publieke URL van de app), `MEDIA_DIR` (pad naar het media-volume), `SETLISTFM_API_KEY` (optioneel; voor de setlist.fm-integratie).
 
 ## Veelgemaakte valkuilen in dit project
 
 - **Vergeet nooit op `user_id` te filteren** in een query. Zonder database-RLS is dit de enige scheiding tussen gebruikers; één ongescopte query = datalek. Gebruik de helpers in `src/lib/db`.
 - Nominatim blokkeert je bij >1 request/seconde. Debounce de zoekfunctie en cache resultaten.
+- **setlist.fm** vereist een API-sleutel (`x-api-key`-header, dus server-side) en een **zichtbare bronlink** terug naar de setlist bij elke weergave — sla daarom de `setlistfm_url` op en toon hem altijd. Rate limit ~2 req/sec; cache de zoekopdrachten net als Nominatim.
 - Video-uploads kunnen groot zijn: stream de upload naar het volume (niet volledig in geheugen laden) en toon altijd een progress bar. Let op de Next.js body-size limiet voor route handlers/server actions en stel die bewust in. Reverse proxy mag de upload-grootte niet onnodig beperken (`client_max_body_size` o.i.d.).
 - MapLibre rendert client-side: laad de kaartcomponent met `dynamic(() => import(...), { ssr: false })`.
 - iOS Safari heeft beperkingen met video-autoplay: toon video's met poster-frame en expliciete play-knop.

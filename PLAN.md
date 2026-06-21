@@ -156,7 +156,13 @@ Ideeën voor later, in volgorde van hoe vet ze zijn:
 
 - **Jaaroverzicht** ("Jouw 2026: 14 optredens, 3 landen, meest geziene artiest: ...") — Spotify Wrapped-stijl
 - **Spotify-koppeling**: artiestfoto's en genres automatisch ophalen
-- **Setlist.fm-integratie**: setlist van het concert erbij tonen
+- **Setlist.fm-integratie** ✅: setlist van het concert erbij tonen. Op de
+  gig-detailpagina haal je met één knop de gespeelde nummers op van setlist.fm
+  (zoeken op artiest + datum, zelf de juiste match kiezen). De setlist wordt
+  opgeslagen in de database (`setlists`-tabel, songs als JSONB) zodat hij offline
+  beschikbaar blijft, met een verplichte bronlink terug naar setlist.fm. Zet de
+  gratis `SETLISTFM_API_KEY` (zie `.env.example`); zonder sleutel toont de knop
+  netjes "geen setlist gevonden".
 - **Delen**: een publieke read-only link naar je globe
 - **Statistieken-pagina**: grafieken per jaar, genre, land
 - **Export**: al je data als JSON/CSV downloaden
