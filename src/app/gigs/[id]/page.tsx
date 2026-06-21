@@ -3,11 +3,12 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Pencil } from "lucide-react";
 
 import { auth } from "@/lib/auth";
-import { getGig, listMediaByGig } from "@/lib/db/queries";
+import { getGig, getSetlistByGig, listMediaByGig } from "@/lib/db/queries";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { DeleteGigButton } from "@/components/gigs/delete-gig-button";
+import { SetlistSection } from "@/components/gigs/setlist-section";
 import { MediaGallery } from "@/components/media/media-gallery";
 import { MediaUploader } from "@/components/media/media-uploader";
 
@@ -35,6 +36,7 @@ export default async function GigDetailPage({
   if (!gig) notFound();
 
   const media = await listMediaByGig(session.user.id, id);
+  const setlist = await getSetlistByGig(session.user.id, id);
 
   const location = [gig.venue.city, gig.venue.country].filter(Boolean).join(", ");
 
@@ -69,6 +71,20 @@ export default async function GigDetailPage({
           {gig.notes && <Detail label="Notities" value={gig.notes} />}
         </CardContent>
       </Card>
+
+      {/* Setlist (songs played), fetched from setlist.fm. */}
+      <section className="mt-6 grid gap-3">
+        <h2 className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+          Setlist
+        </h2>
+        <SetlistSection
+          gigId={gig.id}
+          artistName={gig.artist.name}
+          gigDate={gig.gig_date}
+          cityName={gig.venue.city}
+          setlist={setlist}
+        />
+      </section>
 
       {/* Photo/video memories for this gig. */}
       <section className="mt-6 grid gap-3">
