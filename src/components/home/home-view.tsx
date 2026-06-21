@@ -10,7 +10,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { List, LogOut, Map as MapIcon, Plus } from "lucide-react";
+import { BarChart3, List, LogOut, Map as MapIcon, Plus } from "lucide-react";
 
 import { signOut } from "@/app/actions";
 import type { GigStats, GigWithRelations, VenueWithGigCount } from "@/types";
@@ -29,6 +29,11 @@ function ActionButtons() {
       <Button asChild size="sm">
         <Link href="/gigs/new">
           <Plus /> Nieuw
+        </Link>
+      </Button>
+      <Button asChild size="icon" variant="outline" className="size-9">
+        <Link href="/stats" aria-label="Statistieken">
+          <BarChart3 />
         </Link>
       </Button>
       <ThemeToggle className="size-9" />

@@ -6,17 +6,20 @@
 // The helpers return the snake_case shapes from src/types (Artist, Venue,
 // GigWithRelations) so the rest of the app keeps working unchanged.
 
-import { and, countDistinct, desc, eq, ilike, sql } from "drizzle-orm";
+import { and, countDistinct, desc, eq, ilike, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
 import { artists, gigs, media, venues } from "@/lib/db/schema";
 import type {
   Artist,
+  DetailedStats,
   GigStats,
   GigWithRelations,
   Media,
   MediaType,
+  NameCount,
   Venue,
+  VenueCount,
   VenueType,
   VenueWithGigCount,
 } from "@/types";
@@ -204,6 +207,188 @@ export async function getGigStats(userId: string): Promise<GigStats> {
     gigs: gigRow?.count ?? 0,
     venues: venueRow?.venues ?? 0,
     countries: Number(venueRow?.countries ?? 0),
+  };
+}
+
+// Everything the /stats page needs, computed in SQL and bundled into one
+// object. Each aggregation is its own user-scoped query; they run in parallel.
+// Counts come back from Postgres as bigint strings, so every COUNT is cast to
+// ::int (and countDistinct is wrapped in Number()) to get real JS numbers.
+export async function getDetailedStats(
+  userId: string
+): Promise<DetailedStats> {
+  // Most-seen artists: count gigs per artist, highest first.
+  const topArtistsQuery = db
+    .select({ name: artists.name, count: sql<number>`count(*)::int` })
+    .from(gigs)
+    .innerJoin(artists, eq(gigs.artistId, artists.id))
+    .where(eq(gigs.userId, userId))
+    .groupBy(artists.id, artists.name)
+    .orderBy(desc(sql`count(*)`))
+    .limit(10);
+
+  // Top venues/festivals: same query, filtered by venue type. venues.id is the
+  // primary key so the other venue columns may be selected without grouping on
+  // each (Postgres functional-dependency rule), as in listVenuesWithGigCounts.
+  const topVenuesByType = (type: VenueType) =>
+    db
+      .select({
+        id: venues.id,
+        name: venues.name,
+        type: venues.type,
+        city: venues.city,
+        country: venues.country,
+        count: sql<number>`count(${gigs.id})::int`,
+      })
+      .from(gigs)
+      .innerJoin(venues, eq(gigs.venueId, venues.id))
+      .where(and(eq(gigs.userId, userId), eq(venues.type, type)))
+      .groupBy(venues.id)
+      .orderBy(desc(sql`count(${gigs.id})`))
+      .limit(10);
+
+  // Gigs per country (non-null only), highest first.
+  const topCountriesQuery = db
+    .select({ name: venues.country, count: sql<number>`count(*)::int` })
+    .from(gigs)
+    .innerJoin(venues, eq(gigs.venueId, venues.id))
+    .where(and(eq(gigs.userId, userId), isNotNull(venues.country)))
+    .groupBy(venues.country)
+    .orderBy(desc(sql`count(*)`))
+    .limit(10);
+
+  // Gigs per city. Group on city + country so identically-named cities in
+  // different countries don't merge; the label combines both.
+  const topCitiesQuery = db
+    .select({
+      city: venues.city,
+      country: venues.country,
+      count: sql<number>`count(*)::int`,
+    })
+    .from(gigs)
+    .innerJoin(venues, eq(gigs.venueId, venues.id))
+    .where(and(eq(gigs.userId, userId), isNotNull(venues.city)))
+    .groupBy(venues.city, venues.country)
+    .orderBy(desc(sql`count(*)`))
+    .limit(10);
+
+  // Timeline: gigs per calendar year, ascending.
+  const yearExpr = sql`extract(year from ${gigs.gigDate})`;
+  const gigsPerYearQuery = db
+    .select({ year: sql<number>`${yearExpr}::int`, count: sql<number>`count(*)::int` })
+    .from(gigs)
+    .where(eq(gigs.userId, userId))
+    .groupBy(yearExpr)
+    .orderBy(yearExpr);
+
+  // Totals from the gigs table: total gigs + distinct artists actually seen.
+  const gigTotalsQuery = db
+    .select({
+      gigs: sql<number>`count(*)::int`,
+      artists: sql<number>`count(distinct ${gigs.artistId})::int`,
+    })
+    .from(gigs)
+    .where(eq(gigs.userId, userId));
+
+  // Totals from the venues table: venues vs festivals, distinct countries/cities.
+  const venueTotalsQuery = db
+    .select({
+      venues: sql<number>`(count(*) filter (where ${venues.type} = 'venue'))::int`,
+      festivals: sql<number>`(count(*) filter (where ${venues.type} = 'festival'))::int`,
+      countries: countDistinct(venues.country),
+      cities: countDistinct(venues.city),
+    })
+    .from(venues)
+    .where(eq(venues.userId, userId));
+
+  // Ratings: average, per-rating distribution, and the highest-rated gigs.
+  const avgRatingQuery = db
+    .select({ avg: sql<string | null>`avg(${gigs.rating})` })
+    .from(gigs)
+    .where(and(eq(gigs.userId, userId), isNotNull(gigs.rating)));
+
+  const ratingDistQuery = db
+    .select({ rating: gigs.rating, count: sql<number>`count(*)::int` })
+    .from(gigs)
+    .where(and(eq(gigs.userId, userId), isNotNull(gigs.rating)))
+    .groupBy(gigs.rating);
+
+  const topRatedQuery = db
+    .select({ gig: gigs, artist: artists, venue: venues })
+    .from(gigs)
+    .innerJoin(artists, eq(gigs.artistId, artists.id))
+    .innerJoin(venues, eq(gigs.venueId, venues.id))
+    .where(and(eq(gigs.userId, userId), isNotNull(gigs.rating)))
+    .orderBy(desc(gigs.rating), desc(gigs.gigDate))
+    .limit(5);
+
+  const [
+    topArtists,
+    topVenues,
+    topFestivals,
+    countryRows,
+    cityRows,
+    gigsPerYear,
+    gigTotals,
+    venueTotals,
+    avgRows,
+    distRows,
+    topRatedRows,
+  ] = await Promise.all([
+    topArtistsQuery,
+    topVenuesByType("venue"),
+    topVenuesByType("festival"),
+    topCountriesQuery,
+    topCitiesQuery,
+    gigsPerYearQuery,
+    gigTotalsQuery,
+    venueTotalsQuery,
+    avgRatingQuery,
+    ratingDistQuery,
+    topRatedQuery,
+  ]);
+
+  const topCountries: NameCount[] = countryRows.map((r) => ({
+    name: r.name ?? "Onbekend",
+    count: r.count,
+  }));
+
+  const topCities: NameCount[] = cityRows.map((r) => ({
+    name: r.country ? `${r.city}, ${r.country}` : (r.city ?? "Onbekend"),
+    count: r.count,
+  }));
+
+  // Always emit five rating buckets (1..5) so the chart axis is stable even
+  // when some ratings are unused.
+  const distByRating = new Map(distRows.map((r) => [r.rating, r.count]));
+  const distribution = [1, 2, 3, 4, 5].map((rating) => ({
+    rating,
+    count: distByRating.get(rating) ?? 0,
+  }));
+
+  const avgRaw = avgRows[0]?.avg;
+  const average = avgRaw == null ? null : Number(avgRaw);
+
+  return {
+    totals: {
+      gigs: gigTotals[0]?.gigs ?? 0,
+      artists: gigTotals[0]?.artists ?? 0,
+      venues: venueTotals[0]?.venues ?? 0,
+      festivals: venueTotals[0]?.festivals ?? 0,
+      countries: Number(venueTotals[0]?.countries ?? 0),
+      cities: Number(venueTotals[0]?.cities ?? 0),
+    },
+    topArtists,
+    topVenues: topVenues as VenueCount[],
+    topFestivals: topFestivals as VenueCount[],
+    topCountries,
+    topCities,
+    gigsPerYear,
+    ratings: {
+      average,
+      distribution,
+      topRated: topRatedRows.map(toGigWithRelations),
+    },
   };
 }
 

@@ -72,3 +72,58 @@ export interface GigStats {
   venues: number;
   countries: number;
 }
+
+// --- Statistics page ------------------------------------------------------
+// The shapes below feed the /stats page. Each aggregation is computed in SQL
+// (see getDetailedStats in src/lib/db/queries.ts) and rendered with Recharts.
+
+// A label with a count, used for the top-artists/countries/cities rankings.
+export interface NameCount {
+  name: string;
+  count: number;
+}
+
+// A ranked venue or festival, with enough context to show where it is.
+export interface VenueCount {
+  id: string;
+  name: string;
+  type: VenueType;
+  city: string | null;
+  country: string | null;
+  count: number;
+}
+
+// One year on the timeline ("optredens per jaar").
+export interface YearCount {
+  year: number;
+  count: number;
+}
+
+// One bar of the rating distribution (rating 1..5 → how many gigs).
+export interface RatingBucket {
+  rating: number;
+  count: number;
+}
+
+// Everything the statistics page needs, in one bundle.
+export interface DetailedStats {
+  totals: {
+    gigs: number;
+    artists: number;
+    venues: number;
+    festivals: number;
+    countries: number;
+    cities: number;
+  };
+  topArtists: NameCount[]; // most-seen artists, highest first
+  topVenues: VenueCount[]; // most-visited venues (type = "venue")
+  topFestivals: VenueCount[]; // most-visited festivals (type = "festival")
+  topCountries: NameCount[];
+  topCities: NameCount[];
+  gigsPerYear: YearCount[]; // ascending by year, for the timeline
+  ratings: {
+    average: number | null;
+    distribution: RatingBucket[]; // ratings 1..5, always five buckets
+    topRated: GigWithRelations[]; // highest-rated gigs, a handful
+  };
+}
