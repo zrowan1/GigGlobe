@@ -65,6 +65,29 @@ export interface VenueWithGigCount extends Venue {
   gig_count: number;
 }
 
+// One song in a setlist. `info` holds setlist.fm's note (e.g. "acoustic"),
+// `cover` the original artist when the song is a cover. Both are null when
+// absent. Stored as JSONB on the setlists row, so this shape is the DB shape.
+export interface SetlistSong {
+  name: string;
+  info: string | null;
+  cover: string | null;
+}
+
+// A setlist fetched from setlist.fm and saved for one gig. We keep the source
+// id and url because setlist.fm requires a visible attribution link back to
+// the original setlist whenever we display it.
+export interface Setlist {
+  id: string;
+  user_id: string;
+  gig_id: string;
+  setlistfm_id: string;
+  setlistfm_url: string;
+  songs: SetlistSong[];
+  fetched_at: string;
+  created_at: string;
+}
+
 // Top-level numbers for the map's stats counter ("X optredens · Y venues · Z
 // landen").
 export interface GigStats {
