@@ -30,12 +30,7 @@ export async function listArtists(userId: string): Promise<Artist[]> {
     .where(eq(artists.userId, userId))
     .orderBy(artists.name);
 
-  return rows.map((a) => ({
-    id: a.id,
-    user_id: a.userId,
-    name: a.name,
-    created_at: a.createdAt?.toISOString() ?? "",
-  }));
+  return rows.map(toArtist);
 }
 
 export async function listVenues(userId: string): Promise<Venue[]> {
@@ -73,6 +68,69 @@ export async function getGig(
     .limit(1);
 
   return rows.length ? toGigWithRelations(rows[0]) : null;
+}
+
+// A single artist, scoped to the user. Returns null if it doesn't exist or
+// belongs to someone else — the detail page turns that into a 404.
+export async function getArtist(
+  userId: string,
+  id: string
+): Promise<Artist | null> {
+  const rows = await db
+    .select()
+    .from(artists)
+    .where(and(eq(artists.userId, userId), eq(artists.id, id)))
+    .limit(1);
+
+  return rows.length ? toArtist(rows[0]) : null;
+}
+
+// A single venue, scoped to the user. Same 404 contract as getArtist.
+export async function getVenue(
+  userId: string,
+  id: string
+): Promise<Venue | null> {
+  const rows = await db
+    .select()
+    .from(venues)
+    .where(and(eq(venues.userId, userId), eq(venues.id, id)))
+    .limit(1);
+
+  return rows.length ? toVenue(rows[0]) : null;
+}
+
+// All gigs for one artist, newest first. Same join/shape as listGigs, with an
+// extra filter on the artist. Feeds the artist detail page (its gig list and
+// the venues for its mini-map).
+export async function listGigsByArtist(
+  userId: string,
+  artistId: string
+): Promise<GigWithRelations[]> {
+  const rows = await db
+    .select({ gig: gigs, artist: artists, venue: venues })
+    .from(gigs)
+    .innerJoin(artists, eq(gigs.artistId, artists.id))
+    .innerJoin(venues, eq(gigs.venueId, venues.id))
+    .where(and(eq(gigs.userId, userId), eq(gigs.artistId, artistId)))
+    .orderBy(desc(gigs.gigDate));
+
+  return rows.map(toGigWithRelations);
+}
+
+// All gigs at one venue, newest first. Mirror of listGigsByArtist.
+export async function listGigsByVenue(
+  userId: string,
+  venueId: string
+): Promise<GigWithRelations[]> {
+  const rows = await db
+    .select({ gig: gigs, artist: artists, venue: venues })
+    .from(gigs)
+    .innerJoin(artists, eq(gigs.artistId, artists.id))
+    .innerJoin(venues, eq(gigs.venueId, venues.id))
+    .where(and(eq(gigs.userId, userId), eq(gigs.venueId, venueId)))
+    .orderBy(desc(gigs.gigDate));
+
+  return rows.map(toGigWithRelations);
 }
 
 // All media for one gig, oldest first, so the gallery shows them in upload
@@ -303,6 +361,15 @@ function toMedia(m: typeof media.$inferSelect): Media {
     width: m.width,
     height: m.height,
     created_at: m.createdAt?.toISOString() ?? "",
+  };
+}
+
+function toArtist(a: typeof artists.$inferSelect): Artist {
+  return {
+    id: a.id,
+    user_id: a.userId,
+    name: a.name,
+    created_at: a.createdAt?.toISOString() ?? "",
   };
 }
 
