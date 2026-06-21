@@ -9,11 +9,17 @@ import {
   createVenue,
   deleteGigById,
   deleteMediaByGig,
+  deleteSetlistByGig,
   findArtistByName,
   insertGig,
   updateGigById,
+  upsertSetlist,
 } from "@/lib/db/queries";
 import { searchPlaces, type GeoResult } from "@/lib/geocoding";
+import {
+  searchSetlists as searchSetlistsApi,
+  type SetlistSearchResult,
+} from "@/lib/setlist";
 import { removeFiles } from "@/lib/media/storage";
 import type { VenueType } from "@/types";
 
@@ -29,6 +35,56 @@ export interface GigFormState {
 // header and caching live server-side.
 export async function searchVenuePlaces(query: string): Promise<GeoResult[]> {
   return searchPlaces(query);
+}
+
+// --- Setlist.fm -----------------------------------------------------------
+// These run server-side so the setlist.fm API key and headers stay off the
+// client. The detail page's setlist component calls them.
+
+// Look up candidate setlists for an artist on a date (optionally a city).
+export async function searchSetlists(
+  artistName: string,
+  gigDate: string,
+  cityName?: string | null
+): Promise<SetlistSearchResult[]> {
+  await requireUserId();
+  return searchSetlistsApi(artistName, gigDate, cityName);
+}
+
+// Save (or replace) the setlist the user picked for a gig. The chosen result
+// comes from the client; it is public setlist.fm data, but we still keep only
+// the fields we need and cap the song list to a sane length before storing.
+export async function saveSetlist(
+  gigId: string,
+  result: SetlistSearchResult
+): Promise<void> {
+  if (!gigId || !result?.id || !result?.url) return;
+
+  const userId = await requireUserId();
+
+  const songs = (Array.isArray(result.songs) ? result.songs : [])
+    .slice(0, 200)
+    .map((s) => ({
+      name: String(s.name ?? "").slice(0, 300),
+      info: s.info ? String(s.info).slice(0, 300) : null,
+      cover: s.cover ? String(s.cover).slice(0, 200) : null,
+    }));
+
+  await upsertSetlist(userId, gigId, {
+    setlistfmId: result.id,
+    setlistfmUrl: result.url,
+    songs,
+  });
+
+  revalidatePath(`/gigs/${gigId}`);
+}
+
+// Remove the saved setlist for a gig.
+export async function removeSetlist(gigId: string): Promise<void> {
+  if (!gigId) return;
+  const userId = await requireUserId();
+  await deleteSetlistByGig(userId, gigId);
+  revalidatePath(`/gigs/${gigId}`);
 }
 
 // Read and lightly validate the shared fields from the submitted form.
@@ -222,6 +278,9 @@ export async function deleteGig(formData: FormData): Promise<void> {
   await removeFiles(
     ...removedMedia.flatMap((m) => [m.storage_path, m.thumbnail_path])
   );
+
+  // The setlist FK has no ON DELETE CASCADE either, so drop it before the gig.
+  await deleteSetlistByGig(userId, gigId);
 
   await deleteGigById(userId, gigId);
 
