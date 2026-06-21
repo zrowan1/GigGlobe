@@ -9,7 +9,7 @@
 import { and, countDistinct, desc, eq, ilike, isNotNull, sql } from "drizzle-orm";
 
 import { db } from "@/lib/db";
-import { artists, gigs, media, venues } from "@/lib/db/schema";
+import { artists, gigs, media, setlists, venues } from "@/lib/db/schema";
 import type {
   Artist,
   DetailedStats,
@@ -18,6 +18,8 @@ import type {
   Media,
   MediaType,
   NameCount,
+  Setlist,
+  SetlistSong,
   Venue,
   VenueCount,
   VenueType,
@@ -164,6 +166,21 @@ export async function getMedia(
     .limit(1);
 
   return rows.length ? toMedia(rows[0]) : null;
+}
+
+// The saved setlist for one gig, or null if none was fetched yet. Scoped to
+// the user *and* the gig.
+export async function getSetlistByGig(
+  userId: string,
+  gigId: string
+): Promise<Setlist | null> {
+  const rows = await db
+    .select()
+    .from(setlists)
+    .where(and(eq(setlists.userId, userId), eq(setlists.gigId, gigId)))
+    .limit(1);
+
+  return rows.length ? toSetlist(rows[0]) : null;
 }
 
 // All venues plus the number of gigs at each, for the map pins. A LEFT JOIN
@@ -526,6 +543,44 @@ export async function deleteMediaByGig(
   return rows.map(toMedia);
 }
 
+interface SetlistValues {
+  setlistfmId: string;
+  setlistfmUrl: string;
+  songs: SetlistSong[];
+}
+
+// Save (or replace) the setlist for a gig. The unique gigId means fetching a
+// setlist again overwrites the previous one instead of adding a second row.
+export async function upsertSetlist(
+  userId: string,
+  gigId: string,
+  values: SetlistValues
+): Promise<void> {
+  await db
+    .insert(setlists)
+    .values({ userId, gigId, ...values })
+    .onConflictDoUpdate({
+      target: setlists.gigId,
+      set: {
+        setlistfmId: values.setlistfmId,
+        setlistfmUrl: values.setlistfmUrl,
+        songs: values.songs,
+        fetchedAt: new Date(),
+      },
+    });
+}
+
+// Delete the setlist for a gig, scoped to the user. Used both by the "remove
+// setlist" action and when deleting a whole gig (the FK has no cascade).
+export async function deleteSetlistByGig(
+  userId: string,
+  gigId: string
+): Promise<void> {
+  await db
+    .delete(setlists)
+    .where(and(eq(setlists.userId, userId), eq(setlists.gigId, gigId)));
+}
+
 // --- Mapping helpers ------------------------------------------------------
 
 type VenueRow = typeof venues.$inferSelect;
@@ -555,6 +610,19 @@ function toArtist(a: typeof artists.$inferSelect): Artist {
     user_id: a.userId,
     name: a.name,
     created_at: a.createdAt?.toISOString() ?? "",
+  };
+}
+
+function toSetlist(s: typeof setlists.$inferSelect): Setlist {
+  return {
+    id: s.id,
+    user_id: s.userId,
+    gig_id: s.gigId,
+    setlistfm_id: s.setlistfmId,
+    setlistfm_url: s.setlistfmUrl,
+    songs: s.songs,
+    fetched_at: s.fetchedAt?.toISOString() ?? "",
+    created_at: s.createdAt?.toISOString() ?? "",
   };
 }
 

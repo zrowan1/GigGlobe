@@ -16,12 +16,15 @@ import {
   check,
   date,
   doublePrecision,
+  jsonb,
   pgTable,
   smallint,
   text,
   timestamp,
   uuid,
 } from "drizzle-orm/pg-core";
+
+import type { SetlistSong } from "@/types";
 
 // users: our own accounts (email + password via Auth.js Credentials provider).
 export const users = pgTable("users", {
@@ -110,3 +113,25 @@ export const media = pgTable(
     check("media_type_check", sql`${table.mediaType} in ('photo', 'video')`),
   ]
 );
+
+// setlists: the setlist (songs played) for a gig, fetched from setlist.fm.
+// One setlist per gig (unique gigId); fetching again overwrites it via upsert.
+// Songs live in a single JSONB column instead of their own table — they are
+// only ever read/written as one whole list, so a separate table would add
+// joins for no gain (the "keep it small" rule from AGENTS.md). `setlistfmUrl`
+// is kept because setlist.fm requires a visible attribution link on display.
+export const setlists = pgTable("setlists", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id")
+    .notNull()
+    .references(() => users.id),
+  gigId: uuid("gig_id")
+    .notNull()
+    .references(() => gigs.id)
+    .unique(),
+  setlistfmId: text("setlistfm_id").notNull(),
+  setlistfmUrl: text("setlistfm_url").notNull(),
+  songs: jsonb("songs").$type<SetlistSong[]>().notNull(),
+  fetchedAt: timestamp("fetched_at", { withTimezone: true }).defaultNow(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
