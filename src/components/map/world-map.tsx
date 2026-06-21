@@ -160,9 +160,13 @@ interface PopupInfo {
 
 interface WorldMapProps {
   venues: VenueWithGigCount[];
+  // When true the map is rendered as a small embedded preview (detail pages):
+  // no zoom controls, no globe toggle. The automatic fitBounds still runs so it
+  // opens centred on the venues.
+  compact?: boolean;
 }
 
-export function WorldMap({ venues }: WorldMapProps) {
+export function WorldMap({ venues, compact = false }: WorldMapProps) {
   const mapRef = useRef<MapRef>(null);
   const [projection, setProjection] = useState<
     typeof GLOBE_PROJECTION | typeof FLAT_PROJECTION
@@ -257,7 +261,7 @@ export function WorldMap({ venues }: WorldMapProps) {
       onClick={handleClick}
       style={{ width: "100%", height: "100%" }}
     >
-      <NavigationControl position="top-right" visualizePitch />
+      {!compact && <NavigationControl position="top-right" visualizePitch />}
 
       {/* Faint neon grid over the globe. */}
       <Source id={GRATICULE_ID} type="geojson" data={graticule}>
@@ -306,26 +310,29 @@ export function WorldMap({ venues }: WorldMapProps) {
         </Popup>
       )}
 
-      {/* Manual globe ↔ flat toggle, on top of the automatic globe→flat zoom. */}
-      <button
-        type="button"
-        onClick={() =>
-          setProjection((p) =>
-            p === GLOBE_PROJECTION ? FLAT_PROJECTION : GLOBE_PROJECTION
-          )
-        }
-        className="absolute right-2 top-44 z-10 flex h-8 w-8 items-center justify-center rounded-md border border-[#00e5ff]/40 bg-[#0a0613]/80 text-[#00e5ff] shadow-[0_0_12px_rgba(0,229,255,0.35)] backdrop-blur transition-colors hover:bg-[#160d2b] lg:top-28"
-        aria-label={
-          projection === GLOBE_PROJECTION ? "Toon platte kaart" : "Toon globe"
-        }
-        title={projection === GLOBE_PROJECTION ? "Platte kaart" : "Globe"}
-      >
-        {projection === GLOBE_PROJECTION ? (
-          <MapIcon className="h-4 w-4" />
-        ) : (
-          <Globe className="h-4 w-4" />
-        )}
-      </button>
+      {/* Manual globe ↔ flat toggle, on top of the automatic globe→flat zoom.
+          Hidden in compact (embedded) mode to keep the small preview clean. */}
+      {!compact && (
+        <button
+          type="button"
+          onClick={() =>
+            setProjection((p) =>
+              p === GLOBE_PROJECTION ? FLAT_PROJECTION : GLOBE_PROJECTION
+            )
+          }
+          className="absolute right-2 top-44 z-10 flex h-8 w-8 items-center justify-center rounded-md border border-[#00e5ff]/40 bg-[#0a0613]/80 text-[#00e5ff] shadow-[0_0_12px_rgba(0,229,255,0.35)] backdrop-blur transition-colors hover:bg-[#160d2b] lg:top-28"
+          aria-label={
+            projection === GLOBE_PROJECTION ? "Toon platte kaart" : "Toon globe"
+          }
+          title={projection === GLOBE_PROJECTION ? "Platte kaart" : "Globe"}
+        >
+          {projection === GLOBE_PROJECTION ? (
+            <MapIcon className="h-4 w-4" />
+          ) : (
+            <Globe className="h-4 w-4" />
+          )}
+        </button>
+      )}
     </Map>
   );
 }

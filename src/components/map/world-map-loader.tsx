@@ -23,8 +23,11 @@ const WorldMap = dynamic(
 
 interface WorldMapLoaderProps {
   venues: VenueWithGigCount[];
+  // Compact mode for embedding in a small box (artist/venue detail pages):
+  // hides the zoom controls and globe toggle. Defaults to the full map.
+  compact?: boolean;
 }
 
-export function WorldMapLoader({ venues }: WorldMapLoaderProps) {
-  return <WorldMap venues={venues} />;
+export function WorldMapLoader({ venues, compact }: WorldMapLoaderProps) {
+  return <WorldMap venues={venues} compact={compact} />;
 }
