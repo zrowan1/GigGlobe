@@ -16,8 +16,9 @@ Next.js 15 · PostgreSQL (self-hosted) + Drizzle ORM · Auth.js (e-mail + wachtw
 - ✅ Fase 2 — De kaart en globe (MapLibre, neon-globe, clustering, statistieken)
 - ✅ Fase 3 — Foto's en video's (streaming upload, thumbnails, galerij + lightbox)
 - ✅ Fase 4 — PWA & afwerking (installeerbaar, donkere modus, gecombineerde kaart + lijst)
+- ✅ Fase 5a — Artiest- en venue-detailpagina's (doorklikken vanaf een optreden of een pin op de kaart)
 
-De inhoudelijke kern is compleet. Wat resteert is **Fase 5 (leuke extra's, backlog)** — zie [PLAN.md](./PLAN.md) voor de kandidaat-features.
+De inhoudelijke kern is compleet. Wat resteert is **Fase 5 (leuke extra's, backlog)** — zie [PLAN.md](./PLAN.md) voor de kandidaat-features. Grootste openstaande item: zoeken & filteren in de lijst.
 
 ## Lokaal draaien
 

@@ -131,6 +131,25 @@ daar verandert niets.
 
 ---
 
+## Fase 5a — Artiest- en venue-detailpagina's ✅ (afgerond)
+
+**Doel: doorklikken op wat je al hebt vastgelegd.**
+
+- [x] `/artists/[id]` — alle keren dat je één artiest zag, met mini-kaart en "X keer gezien · Y venues · Z landen"
+- [x] `/venues/[id]` — alle optredens op één venue, met mini-kaart en "X optredens · Y artiesten"
+- [x] Artiestnaam en venue op de optreden-detailpagina zijn nu links naar die pagina's
+- [x] Kaart-popup ("Bekijk optredens") linkt nu naar de **venue-pagina** in plaats van de hele lijst
+
+**Aanpak:** geen nieuwe tabellen en geen nieuwe dependency — alles komt uit gegevens die er al waren.
+Vier user-scoped query-helpers erbij (`getArtist`, `getVenue`, `listGigsByArtist`, `listGigsByVenue` in
+`src/lib/db/queries.ts`), plus `src/lib/gigs.ts` met kleine helpers die een optredenlijst omrekenen naar
+unieke venues/landen/artiesten voor de kopregels en de mini-kaart. De bestaande `WorldMap` kreeg een
+`compact`-stand (zonder zoomknoppen en globe-toggle) zodat hij ook in een klein kadertje past, en de
+bestaande `GigsList` wordt hergebruikt. Een onbekende of andermans id geeft een 404 — dat is meteen het
+bewijs dat de `user_id`-scoping werkt.
+
+---
+
 ## Fase 5 — Leuke extra's (backlog, geen verplichting)
 
 Ideeën voor later, in volgorde van hoe vet ze zijn:
@@ -150,9 +169,9 @@ inspanning = hoeveel werk) is grof bedoeld als hulp bij het prioriteren — niet
 
 **Vinden & ordenen**
 
-- **Zoeken & filteren in de lijst** — filter optredens op artiest, jaar, land of type (venue/festival) en zoek op naam. *Waarde: hoog · Inspanning: laag.* De lijst groeit snel; dit is waarschijnlijk de meest dagelijkse winst.
-- **Artiest- en venue-detailpagina's** — klik een artiest aan en zie alle keren dat je 'm zag (met mini-kaart); idem per venue. *Waarde: hoog · Inspanning: midden.* Hergebruikt data die er al is.
-- **Rating & notitie per optreden** — sterren + een vrij notitieveld ("beste gig ooit", wie mee was). *Waarde: midden · Inspanning: laag.* Eén kolom in `gigs` + wat UI.
+- **Zoeken & filteren in de lijst** — filter optredens op artiest, jaar, land of type (venue/festival) en zoek op naam. *Waarde: hoog · Inspanning: laag.* De lijst groeit snel; dit is waarschijnlijk de meest dagelijkse winst. **← nu het grootste openstaande item**
+- ✅ **Artiest- en venue-detailpagina's** — klik een artiest aan en zie alle keren dat je 'm zag (met mini-kaart); idem per venue. *Afgerond* — zie "Fase 5a" hieronder.
+- ✅ **Rating & notitie per optreden** — sterren + een vrij notitieveld. *Was al gebouwd* (kolommen `rating`/`notes` zitten sinds migratie `0000` in `gigs`, de velden staan in het optreden-formulier en zijn zichtbaar op de detailpagina en in de lijst).
 - **Vrije tags/labels** — zelf labels toekennen ("met vrienden", "regen", "festivalzomer") en erop filteren. *Waarde: midden · Inspanning: midden.*
 
 **Op de kaart**
@@ -184,13 +203,16 @@ Fase 1: Optredens CRUD     ████████ ~2-3 sessies ✅
 Fase 2: Kaart & globe      ██████ ~2 sessies ✅
 Fase 3: Media uploads      ██████ ~2 sessies ✅
 Fase 4: PWA & polish       ████ ~1-2 sessies ✅
+Fase 5a: Artiest/venue     ████ ~1 sessie ✅
 ```
 
 **Belangrijk:** na fase 1 is de app al bruikbaar. Na fase 2 is hij al vet. Niet alles hoeft af voordat je hem gebruikt — begin met je eerste echte optredens invoeren zodra fase 1 staat, dan test je meteen met echte data.
 
 ## Eerste concrete stap
 
-Fase R, 1, 2, 3 en 4 zijn afgerond: de code draait op de selfhost-stack (Drizzle + Postgres + Auth.js + Docker), de home page is de gecombineerde kaart + lijst (desktop naast elkaar, mobiel als tabs), per optreden kun je foto's en video's uploaden/bekijken/verwijderen, en de app is een installeerbare PWA met eigen neon-icoon, donkere modus (met toggle) en nette loading/error-schermen. De inhoudelijke kern is nu compleet — wat resteert is **Fase 5 (leuke extra's, backlog)**: bijv. een jaaroverzicht, Spotify- of Setlist.fm-koppeling, een deelbare publieke globe of een statistiekenpagina.
+Fase R, 1, 2, 3, 4 en 5a zijn afgerond: de code draait op de selfhost-stack (Drizzle + Postgres + Auth.js + Docker), de home page is de gecombineerde kaart + lijst (desktop naast elkaar, mobiel als tabs), per optreden kun je foto's en video's uploaden/bekijken/verwijderen, de app is een installeerbare PWA met eigen neon-icoon, donkere modus (met toggle) en nette loading/error-schermen, en je kunt doorklikken naar een artiest- of venue-pagina met alle optredens daar.
+
+**Wat nu?** Het grootste openstaande backlog-item is **zoeken & filteren in de lijst** (hoge waarde, lage inspanning). Daarnaast liggen er nog twee afgeronde branches klaar die nooit gemerged zijn: een **statistiekenpagina** (`claude/concert-statistics-feature-ijfzm2`, voegt een `recharts`-dependency toe) en een **setlist.fm-koppeling** (`claude/setlist-fm-integration-x973uj`, externe API met sleutel + een extra migratie). Allebei raken ze `src/lib/db/queries.ts`, dus wie als tweede landt moet even rebasen.
 
 Om de huidige app lokaal te draaien:
 

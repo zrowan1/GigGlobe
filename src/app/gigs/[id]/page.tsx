@@ -20,8 +20,8 @@ function formatDate(iso: string): string {
   });
 }
 
-// Detail page for a single gig. In Phase 3 this is where the photo/video
-// gallery will live; for now it shows the details and the edit/delete actions.
+// Detail page for a single gig: the details, the photo/video gallery, and the
+// edit/delete actions. The artist and venue link through to their own pages.
 export default async function GigDetailPage({
   params,
 }: {
