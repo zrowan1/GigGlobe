@@ -153,6 +153,7 @@ const INTERACTIVE_LAYERS = ["clusters", "unclustered-point"];
 interface PopupInfo {
   longitude: number;
   latitude: number;
+  venueId: string;
   name: string;
   type: string;
   gigCount: number;
@@ -245,6 +246,7 @@ export function WorldMap({ venues, compact = false }: WorldMapProps) {
     setPopup({
       longitude,
       latitude,
+      venueId: feature.properties?.venueId as string,
       name: feature.properties?.name as string,
       type: feature.properties?.type as string,
       gigCount: feature.properties?.gigCount as number,
@@ -301,7 +303,7 @@ export function WorldMap({ venues, compact = false }: WorldMapProps) {
               {popup.gigCount} {popup.gigCount === 1 ? "optreden" : "optredens"}
             </p>
             <Link
-              href="/gigs"
+              href={`/venues/${popup.venueId}`}
               className="text-sm font-medium text-[#00e5ff] underline decoration-[#00e5ff]/50 underline-offset-2 hover:decoration-[#00e5ff]"
             >
               Bekijk optredens
