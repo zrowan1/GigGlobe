@@ -34,6 +34,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
+# The SQL migrations + journal, read at startup by src/instrumentation.ts to
+# bring the database up to date automatically. These are plain data files, so
+# Next's file tracing doesn't include them in the standalone bundle — copy them
+# in explicitly.
+COPY --from=builder /app/drizzle ./drizzle
+
 # Media volume mount point, owned by the runtime user so uploads can be written.
 # NOTE: when MEDIA_DIR is a host *bind mount*, the host folder's ownership wins,
 # so it must be writable by uid 1001 (see README). This chown covers the

@@ -37,7 +37,9 @@ Inloggen gaat met **e-mailadres + wachtwoord**. Er is (nog) geen registratiepagi
 
 ## Selfhosten op ZimaOS
 
-De hele app draait als containers via `docker-compose` (de Next.js-app + een PostgreSQL-database):
+**De makkelijkste weg — kant-en-klaar image via de GUI:** installeer GigGlobe met het vooraf gebouwde image (`ghcr.io/zrowan1/gigglobe`) zonder zelf te bouwen of migraties te draaien. Plak [`deploy/docker-compose.zimaos.yml`](./deploy/docker-compose.zimaos.yml) in de ZimaOS-app-import, vul de waarden in, klaar. De volledige stap-voor-stap staat in [docs/INSTALL-ZIMAOS.md](./docs/INSTALL-ZIMAOS.md). Bij de eerste start maakt het image zelf de tabellen aan en je login-account (uit `ADMIN_EMAIL`/`ADMIN_PASSWORD`).
+
+**Vanuit de broncode bouwen** (onderstaande instructies) blijft mogelijk voor lokale dev of een handmatige deploy. De hele app draait als containers via `docker-compose` (de Next.js-app + een PostgreSQL-database):
 
 ```bash
 docker compose up -d db      # start eerst alleen de database
