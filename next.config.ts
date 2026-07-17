@@ -9,6 +9,11 @@ const nextConfig: NextConfig = {
   // parent directory (if there's a stray lockfile higher up) and trace the
   // wrong files into the standalone bundle.
   outputFileTracingRoot: process.cwd(),
+  // Keep the Postgres driver out of the webpack bundle: it's required at
+  // runtime from node_modules instead. `pg` pulls in Node built-ins (fs) via
+  // pgpass, which otherwise breaks the build. Used by the DB client and the
+  // startup migrator (src/instrumentation-node.ts).
+  serverExternalPackages: ["pg"],
   // Make sure sharp (used for photo thumbnails in the media upload route) and
   // its native binaries are copied into the standalone bundle. Without this the
   // app builds fine locally but thumbnail generation can crash in the Docker

@@ -1,0 +1,88 @@
+# GigGlobe — install from the pre-built image (no build step needed).
+#
+# On ZimaOS:  App Store → "Install a Custom App" → Import → Docker Compose tab →
+#             paste this file → change every CHANGE_ME value → Submit.
+# On any host with Docker:  docker compose -f docker-compose.zimaos.yml up -d
+#
+# You MUST change: the database password (one place — the &pgpass anchor below),
+# AUTH_SECRET, AUTH_URL, ADMIN_EMAIL and ADMIN_PASSWORD.
+# Generate the secrets on any machine:
+#   openssl rand -base64 32   → AUTH_SECRET
+#   openssl rand -base64 24   → database password
+
+# The database password, referenced by both services so you only set it once.
+x-pgpass: &pgpass "CHANGE_ME_strong_db_password"
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gigglobe
+      POSTGRES_PASSWORD: *pgpass
+      POSTGRES_DB: gigglobe
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U gigglobe"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    image: ghcr.io/zrowan1/gigglobe:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Database — the app assembles its own connection string from these, so
+      # the password lives in exactly one place (the anchor above).
+      POSTGRES_HOST: db
+      POSTGRES_USER: gigglobe
+      POSTGRES_PASSWORD: *pgpass
+      POSTGRES_DB: gigglobe
+      # Auth — REQUIRED.
+      # AUTH_URL must be the exact address you open in the browser (server IP,
+      # VPN/Tailscale hostname, or your domain behind a reverse proxy).
+      AUTH_SECRET: "CHANGE_ME_openssl_rand_base64_32"
+      AUTH_URL: "http://CHANGE_ME_server-ip:3000"
+      AUTH_TRUST_HOST: "true"
+      # First login account — created automatically on the very first start,
+      # only when the database has no users yet. You can remove ADMIN_PASSWORD
+      # after that first successful start.
+      ADMIN_EMAIL: "you@example.com"
+      ADMIN_PASSWORD: "CHANGE_ME_your_login_password"
+      # Media storage inside the container (mapped to the media_data volume).
+      MEDIA_DIR: /media
+      # Optional: setlist.fm API key (leave empty to disable setlist lookups).
+      SETLISTFM_API_KEY: ""
+    ports:
+      - "3000:3000"
+    volumes:
+      - media_data:/media
+
+volumes:
+  db_data:
+  media_data:
+
+# Metadata for the ZimaOS / CasaOS app UI (ignored by plain docker compose).
+x-casaos:
+  architectures:
+    - amd64
+    - arm64
+  main: app
+  title:
+    en_us: GigGlobe
+  tagline:
+    en_us: Your concert history on a world map
+  description:
+    en_us: >-
+      Track the artists you've seen live on a neon world map that fills with
+      pins and your own photos and videos per gig. Fully self-hosted.
+  developer: zrowan1
+  author: zrowan1
+  category: Media
+  port_map: "3000"
+  icon: https://raw.githubusercontent.com/zrowan1/GigGlobe/main/public/icons/icon-192.png
+  thumbnail: https://raw.githubusercontent.com/zrowan1/GigGlobe/main/public/icons/icon-512.png
