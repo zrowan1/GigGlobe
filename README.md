@@ -31,7 +31,7 @@ npm run seed -- jij@voorbeeld.nl jouw-wachtwoord   # maakt je login-account
 npm run dev                  # start de app op http://localhost:3000
 ```
 
-Je hebt een `.env` nodig (zie `.env.example`) met `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` en `MEDIA_DIR`. Deze wordt bewust niet meegecommit (`.env.local` werkt ook en wint van `.env`). Genereer een `AUTH_SECRET` met `openssl rand -base64 32`. Hetzelfde `.env`-bestand wordt ook door `docker compose` gebruikt.
+Je hebt een `.env` nodig (zie `.env.example`) met `POSTGRES_PASSWORD`, `DATABASE_URL`, `AUTH_SECRET`, `AUTH_URL` en `MEDIA_DIR`. Deze wordt bewust niet meegecommit (`.env.local` werkt ook en wint van `.env`). Genereer een `AUTH_SECRET` met `openssl rand -base64 32` en een `POSTGRES_PASSWORD` met `openssl rand -base64 24`. Let op: het wachtwoord in `DATABASE_URL` moet gelijk zijn aan `POSTGRES_PASSWORD` (die twee handmatig gelijk houden). Hetzelfde `.env`-bestand wordt ook door `docker compose` gebruikt; zonder `POSTGRES_PASSWORD` weigert `docker compose` te starten.
 
 Inloggen gaat met **e-mailadres + wachtwoord**. Er is (nog) geen registratiepagina: accounts maak je aan met `npm run seed`. Dat commando opnieuw draaien met hetzelfde e-mailadres reset het wachtwoord.
 
@@ -48,6 +48,9 @@ docker compose up -d --build # bouw en start de hele stack
 
 Aandachtspunten:
 
+- **DB-wachtwoord:** zet een sterk `POSTGRES_PASSWORD` in `.env` (`openssl rand -base64 24`) en houd het gelijk aan het wachtwoord in `DATABASE_URL`. Zonder `POSTGRES_PASSWORD` start `docker compose` niet — dat is expres, zodat de triviale default nooit op de server terechtkomt.
+- **`AUTH_URL`:** zet dit op het adres waarop je de app opent (bijv. `http://<zimaos-host>:3000`, je VPN/Tailscale-hostname, of je domein achter de reverse proxy). Staat het op `localhost`, dan breekt de login-redirect zodra je vanaf een ander apparaat inlogt.
+- **DB-poort:** de database luistert alleen op `127.0.0.1:5432` (niet LAN-breed bereikbaar). Migraties draai je vanaf de host, of via `docker compose exec db psql ...`.
 - **Media** staan op een lokaal volume (`MEDIA_DIR`); mount die map zodat foto's en video's updates overleven. De app draait in de container als gebruiker met uid `1001`, dus de gemounte map moet voor die gebruiker schrijfbaar zijn — eenmalig `chown -R 1001:1001 ./media` (of een andere `MEDIA_DIR`) op de host. Optioneel beperk je de uploadgrootte per bestand met `MEDIA_MAX_UPLOAD_MB` (default 500).
 - **Database** staat op een eigen volume zodat je data behouden blijft.
 - Zet de app achter een **reverse proxy** (ZimaOS-proxy, Traefik of Caddy) met HTTPS en een eigen (sub)domein. Geef `X-Forwarded-Host` en `X-Forwarded-Proto` door en zet `AUTH_URL` op dat publieke domein. De app draait met `AUTH_TRUST_HOST=true` zodat Auth.js de proxy-host vertrouwt.

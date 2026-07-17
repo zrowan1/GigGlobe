@@ -14,11 +14,14 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-gigglobe}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-gigglobe}
+      # No insecure default: compose refuses to start unless POSTGRES_PASSWORD is
+      # set in .env, so the trivial "gigglobe" password can never reach the server.
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set in .env}
       POSTGRES_DB: ${POSTGRES_DB:-gigglobe}
     ports:
-      # Exposed so you can run migrations/seed from the host.
-      - "5432:5432"
+      # Bound to localhost only: migrations/seed run from the host (localhost:5432),
+      # but no other machine on the LAN can reach the database.
+      - "127.0.0.1:5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
     healthcheck:
@@ -34,8 +37,9 @@ services:
       db:
         condition: service_healthy
     environment:
-      # Inside the compose network the database host is "db".
-      DATABASE_URL: postgres://${POSTGRES_USER:-gigglobe}:${POSTGRES_PASSWORD:-gigglobe}@db:5432/${POSTGRES_DB:-gigglobe}
+      # Inside the compose network the database host is "db". Password has no
+      # fallback here either — it must match the POSTGRES_PASSWORD above.
+      DATABASE_URL: postgres://${POSTGRES_USER:-gigglobe}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB:-gigglobe}
       AUTH_SECRET: ${AUTH_SECRET}
       AUTH_URL: ${AUTH_URL:-http://localhost:3000}
       AUTH_TRUST_HOST: "true"
