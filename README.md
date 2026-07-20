@@ -39,6 +39,8 @@ Inloggen gaat met **e-mailadres + wachtwoord**. Er is (nog) geen registratiepagi
 
 **De makkelijkste weg — kant-en-klaar image via de GUI:** installeer GigGlobe met het vooraf gebouwde image (`ghcr.io/zrowan1/gigglobe`) zonder zelf te bouwen of migraties te draaien. Plak [`deploy/docker-compose.zimaos.yml`](./deploy/docker-compose.zimaos.yml) in de ZimaOS-app-import, vul de waarden in, klaar. De volledige stap-voor-stap staat in [docs/INSTALL-ZIMAOS.md](./docs/INSTALL-ZIMAOS.md). Bij de eerste start maakt het image zelf de tabellen aan en je login-account (uit `ADMIN_EMAIL`/`ADMIN_PASSWORD`).
 
+> **Let op:** de ZimaOS-/CasaOS-app-import herschrijft het compose-bestand tijdens het importeren. Hij plakt de poort-mapping op álle services (waardoor `db` poort `3000` inpikt en de app niet meer start), voegt `network_mode: bridge` toe (waardoor de app de database niet op naam kan vinden) en zet named volumes om naar host-bind-mounts die van `root` zijn (waardoor uploads stuklopen op rechten). Dit ligt niet aan de compose in deze repo — die is correct. Wat je moet nalopen en hoe je het corrigeert staat in [docs/INSTALL-ZIMAOS.md](./docs/INSTALL-ZIMAOS.md#installeren-via-de-gui). Wil je het omzeilen: deploy via de terminal met `docker compose -f deploy/docker-compose.zimaos.yml up -d`.
+
 **Vanuit de broncode bouwen** (onderstaande instructies) blijft mogelijk voor lokale dev of een handmatige deploy. De hele app draait als containers via `docker-compose` (de Next.js-app + een PostgreSQL-database):
 
 ```bash
