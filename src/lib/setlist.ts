@@ -92,10 +92,43 @@ function toSearchResult(s: SfmSetlist): SetlistSearchResult {
   };
 }
 
-// Search setlists for an artist on a given date (optionally narrowed by city).
-// Returns candidate setlists for the user to pick from. Returns an empty list
+// Rank candidates so the one matching the gig's stored city/venue floats to
+// the top, without ever dropping the others. We deliberately do NOT filter on
+// city: setlist.fm's cityName filter is strict, and for festivals the city we
+// geocoded ("Landgraaf" vs. a hamlet, or a translated/misspelled name) often
+// doesn't match setlist.fm's record — which would wrongly return zero results.
+// Searching on artist + date and ranking locally is far more robust.
+function rankByCity(
+  results: SetlistSearchResult[],
+  cityHint: string | null | undefined
+): SetlistSearchResult[] {
+  const hint = cityHint?.trim().toLowerCase();
+  if (!hint) return results;
+
+  const score = (r: SetlistSearchResult): number => {
+    const city = r.cityName?.toLowerCase() ?? "";
+    const venue = r.venueName?.toLowerCase() ?? "";
+    if (city === hint) return 3;
+    if (city.includes(hint) || hint.includes(city)) return 2;
+    if (venue.includes(hint) || hint.includes(venue)) return 1;
+    return 0;
+  };
+
+  // Stable sort by score (highest first); ties keep setlist.fm's own order.
+  return results
+    .map((r, i) => ({ r, i, s: score(r) }))
+    .sort((a, b) => b.s - a.s || a.i - b.i)
+    .map((x) => x.r);
+}
+
+// Search setlists for an artist on a given date. Returns candidate setlists for
+// the user to pick from, best city/venue match first. Returns an empty list
 // when there is no API key, no match, or on any error — callers never have to
 // handle exceptions for a simple lookup.
+//
+// `cityName` is used only as a ranking hint (see rankByCity), not as a hard
+// filter, so festivals whose geocoded city differs from setlist.fm's still show
+// up.
 export async function searchSetlists(
   artistName: string,
   isoDate: string,
@@ -110,7 +143,6 @@ export async function searchSetlists(
   const url = new URL(SETLISTFM_URL);
   url.searchParams.set("artistName", name);
   url.searchParams.set("date", toSfmDate(isoDate));
-  if (cityName) url.searchParams.set("cityName", cityName.trim());
 
   try {
     const res = await fetch(url, {
@@ -128,7 +160,8 @@ export async function searchSetlists(
     if (!res.ok) return [];
 
     const data = (await res.json()) as SfmSearchResponse;
-    return (data.setlist ?? []).map(toSearchResult);
+    const results = (data.setlist ?? []).map(toSearchResult);
+    return rankByCity(results, cityName);
   } catch {
     return [];
   }

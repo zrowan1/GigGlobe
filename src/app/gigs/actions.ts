@@ -110,14 +110,21 @@ function parseGigForm(formData: FormData):
   if (!artistName) return { ok: false, error: "Vul een artiest in." };
   if (!gigDate) return { ok: false, error: "Kies een datum." };
 
-  // A venue is valid if either an existing one was picked (venueId), or a new
-  // one was located via Nominatim (we then have name + coordinates).
-  const hasNewVenue =
-    venueName !== "" && latRaw !== "" && lonRaw !== "";
-  if (!venueId && !hasNewVenue) {
+  // Every location needs a name (free text, e.g. "Pinkpop"). When you reuse a
+  // saved venue (venueId) the name is already filled in for you.
+  if (!venueId && venueName === "") {
+    return { ok: false, error: "Vul een naam voor de locatie in." };
+  }
+
+  // For a new location we also need coordinates, which come from picking a
+  // place in the "Plaats" field. Reusing a saved venue (venueId) already has
+  // them.
+  const hasCoords = latRaw !== "" && lonRaw !== "";
+  if (!venueId && !hasCoords) {
     return {
       ok: false,
-      error: "Kies een locatie uit de zoeklijst zodat we hem op de kaart kunnen zetten.",
+      error:
+        "Kies een plaats uit de zoeklijst zodat we het optreden op de kaart kunnen zetten.",
     };
   }
 
