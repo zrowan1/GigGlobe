@@ -4,24 +4,19 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { auth } from "@/lib/auth";
-import {
-  createArtist,
-  createVenue,
-  deleteGigById,
-  deleteMediaByGig,
-  deleteSetlistByGig,
-  findArtistByName,
-  insertGig,
-  updateGigById,
-  upsertSetlist,
-} from "@/lib/db/queries";
+import { deleteSetlistByGig } from "@/lib/db/queries";
 import { searchPlaces, type GeoResult } from "@/lib/geocoding";
+import {
+  createGigForUser,
+  deleteGigForUser,
+  parseGigInput,
+  saveSetlistForUser,
+  updateGigForUser,
+} from "@/lib/gig-service";
 import {
   searchSetlists as searchSetlistsApi,
   type SetlistSearchResult,
 } from "@/lib/setlist";
-import { removeFiles } from "@/lib/media/storage";
-import type { VenueType } from "@/types";
 
 // State returned by the create/update actions. When something goes wrong we
 // return { error } so the form can show it; on success the action redirects
@@ -51,30 +46,16 @@ export async function searchSetlists(
   return searchSetlistsApi(artistName, gigDate, cityName);
 }
 
-// Save (or replace) the setlist the user picked for a gig. The chosen result
-// comes from the client; it is public setlist.fm data, but we still keep only
-// the fields we need and cap the song list to a sane length before storing.
+// Save (or replace) the setlist the user picked for a gig. Validation lives in
+// saveSetlistForUser (src/lib/gig-service.ts), shared with the app's API.
 export async function saveSetlist(
   gigId: string,
   result: SetlistSearchResult
 ): Promise<void> {
-  if (!gigId || !result?.id || !result?.url) return;
+  if (!gigId) return;
 
   const userId = await requireUserId();
-
-  const songs = (Array.isArray(result.songs) ? result.songs : [])
-    .slice(0, 200)
-    .map((s) => ({
-      name: String(s.name ?? "").slice(0, 300),
-      info: s.info ? String(s.info).slice(0, 300) : null,
-      cover: s.cover ? String(s.cover).slice(0, 200) : null,
-    }));
-
-  await upsertSetlist(userId, gigId, {
-    setlistfmId: result.id,
-    setlistfmUrl: result.url,
-    songs,
-  });
+  await saveSetlistForUser(userId, gigId, result);
 
   revalidatePath(`/gigs/${gigId}`);
 }
@@ -85,119 +66,6 @@ export async function removeSetlist(gigId: string): Promise<void> {
   const userId = await requireUserId();
   await deleteSetlistByGig(userId, gigId);
   revalidatePath(`/gigs/${gigId}`);
-}
-
-// Read and lightly validate the shared fields from the submitted form.
-// Returns either the cleaned values or an error message.
-function parseGigForm(formData: FormData):
-  | { ok: true; values: ParsedGig }
-  | { ok: false; error: string } {
-  const artistName = String(formData.get("artistName") ?? "").trim();
-  const artistId = String(formData.get("artistId") ?? "").trim();
-
-  const venueName = String(formData.get("venueName") ?? "").trim();
-  const venueId = String(formData.get("venueId") ?? "").trim();
-  const venueType = String(formData.get("venueType") ?? "venue") as VenueType;
-  const latRaw = String(formData.get("latitude") ?? "").trim();
-  const lonRaw = String(formData.get("longitude") ?? "").trim();
-  const city = String(formData.get("city") ?? "").trim() || null;
-  const country = String(formData.get("country") ?? "").trim() || null;
-
-  const gigDate = String(formData.get("gigDate") ?? "").trim();
-  const notes = String(formData.get("notes") ?? "").trim() || null;
-  const ratingRaw = String(formData.get("rating") ?? "").trim();
-
-  if (!artistName) return { ok: false, error: "Vul een artiest in." };
-  if (!gigDate) return { ok: false, error: "Kies een datum." };
-
-  // Every location needs a name (free text, e.g. "Pinkpop"). When you reuse a
-  // saved venue (venueId) the name is already filled in for you.
-  if (!venueId && venueName === "") {
-    return { ok: false, error: "Vul een naam voor de locatie in." };
-  }
-
-  // For a new location we also need coordinates, which come from picking a
-  // place in the "Plaats" field. Reusing a saved venue (venueId) already has
-  // them.
-  const hasCoords = latRaw !== "" && lonRaw !== "";
-  if (!venueId && !hasCoords) {
-    return {
-      ok: false,
-      error:
-        "Kies een plaats uit de zoeklijst zodat we het optreden op de kaart kunnen zetten.",
-    };
-  }
-
-  const rating = ratingRaw ? Number.parseInt(ratingRaw, 10) : null;
-
-  return {
-    ok: true,
-    values: {
-      artistName,
-      artistId: artistId || null,
-      venueId: venueId || null,
-      venueName,
-      venueType: venueType === "festival" ? "festival" : "venue",
-      latitude: latRaw ? Number.parseFloat(latRaw) : null,
-      longitude: lonRaw ? Number.parseFloat(lonRaw) : null,
-      city,
-      country,
-      gigDate,
-      notes,
-      rating,
-    },
-  };
-}
-
-interface ParsedGig {
-  artistName: string;
-  artistId: string | null;
-  venueId: string | null;
-  venueName: string;
-  venueType: VenueType;
-  latitude: number | null;
-  longitude: number | null;
-  city: string | null;
-  country: string | null;
-  gigDate: string;
-  notes: string | null;
-  rating: number | null;
-}
-
-// Find an existing artist by exact (case-insensitive) name, or create one.
-// This is the "no duplicate Kendrick Lamar" rule from the plan.
-async function resolveArtistId(
-  userId: string,
-  values: ParsedGig
-): Promise<string> {
-  if (values.artistId) return values.artistId;
-
-  const existing = await findArtistByName(userId, values.artistName);
-  if (existing) return existing;
-
-  return createArtist(userId, values.artistName);
-}
-
-// Use the picked existing venue, or create a new one from the geocode result.
-async function resolveVenueId(
-  userId: string,
-  values: ParsedGig
-): Promise<string> {
-  if (values.venueId) return values.venueId;
-
-  // parseGigForm guarantees coordinates are present when there's no venueId.
-  if (values.latitude === null || values.longitude === null) {
-    throw new Error("Kon de locatie niet opslaan.");
-  }
-
-  return createVenue(userId, {
-    name: values.venueName,
-    type: values.venueType,
-    city: values.city,
-    country: values.country,
-    latitude: values.latitude,
-    longitude: values.longitude,
-  });
 }
 
 async function requireUserId(): Promise<string> {
@@ -212,22 +80,13 @@ export async function createGig(
   _prevState: GigFormState,
   formData: FormData
 ): Promise<GigFormState> {
-  const parsed = parseGigForm(formData);
+  const parsed = parseGigInput(Object.fromEntries(formData));
   if (!parsed.ok) return { error: parsed.error };
 
   const userId = await requireUserId();
 
   try {
-    const artistId = await resolveArtistId(userId, parsed.values);
-    const venueId = await resolveVenueId(userId, parsed.values);
-
-    await insertGig(userId, {
-      artistId,
-      venueId,
-      gigDate: parsed.values.gigDate,
-      notes: parsed.values.notes,
-      rating: parsed.values.rating,
-    });
+    await createGigForUser(userId, parsed.values);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Er ging iets mis." };
   }
@@ -245,22 +104,13 @@ export async function updateGig(
   const gigId = String(formData.get("gigId") ?? "").trim();
   if (!gigId) return { error: "Onbekend optreden." };
 
-  const parsed = parseGigForm(formData);
+  const parsed = parseGigInput(Object.fromEntries(formData));
   if (!parsed.ok) return { error: parsed.error };
 
   const userId = await requireUserId();
 
   try {
-    const artistId = await resolveArtistId(userId, parsed.values);
-    const venueId = await resolveVenueId(userId, parsed.values);
-
-    await updateGigById(userId, gigId, {
-      artistId,
-      venueId,
-      gigDate: parsed.values.gigDate,
-      notes: parsed.values.notes,
-      rating: parsed.values.rating,
-    });
+    await updateGigForUser(userId, gigId, parsed.values);
   } catch (e) {
     return { error: e instanceof Error ? e.message : "Er ging iets mis." };
   }
@@ -271,25 +121,14 @@ export async function updateGig(
   redirect(`/gigs/${gigId}`);
 }
 
-// Delete a gig. The query is scoped to the user, so you can only delete your own.
-// The media FK has no ON DELETE CASCADE, so we first remove the gig's media
-// rows (and the files on disk) — otherwise the gig delete would fail on the
-// constraint and leave orphaned files behind.
+// Delete a gig. The query is scoped to the user, so you can only delete your
+// own. deleteGigForUser also removes the gig's media (rows + files) and setlist.
 export async function deleteGig(formData: FormData): Promise<void> {
   const gigId = String(formData.get("gigId") ?? "").trim();
   if (!gigId) return;
 
   const userId = await requireUserId();
-
-  const removedMedia = await deleteMediaByGig(userId, gigId);
-  await removeFiles(
-    ...removedMedia.flatMap((m) => [m.storage_path, m.thumbnail_path])
-  );
-
-  // The setlist FK has no ON DELETE CASCADE either, so drop it before the gig.
-  await deleteSetlistByGig(userId, gigId);
-
-  await deleteGigById(userId, gigId);
+  await deleteGigForUser(userId, gigId);
 
   revalidatePath("/gigs");
   revalidatePath("/");

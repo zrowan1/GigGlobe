@@ -468,8 +468,13 @@ interface GigValues {
 export async function insertGig(
   userId: string,
   values: GigValues
-): Promise<void> {
-  await db.insert(gigs).values({ userId, ...values });
+): Promise<string> {
+  const [row] = await db
+    .insert(gigs)
+    .values({ userId, ...values })
+    .returning({ id: gigs.id });
+
+  return row.id;
 }
 
 export async function updateGigById(
