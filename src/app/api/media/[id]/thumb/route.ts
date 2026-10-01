@@ -5,7 +5,7 @@
 // (e.g. HEIC on a build without a decoder) we fall back to the original so the
 // gallery still shows something.
 
-import { auth } from "@/lib/auth";
+import { getRequestUserId } from "@/lib/api/auth";
 import { getMedia } from "@/lib/db/queries";
 import { streamMediaFile } from "@/lib/media/serve";
 
@@ -15,8 +15,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ): Promise<Response> {
-  const session = await auth();
-  const userId = session?.user?.id;
+  // Website cookie or the app's bearer token (see src/lib/api/auth.ts).
+  const userId = await getRequestUserId(request);
   if (!userId) return new Response("Unauthorized", { status: 401 });
 
   const { id } = await params;

@@ -10,7 +10,7 @@ import { createWriteStream } from "node:fs";
 import { Readable, Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 
-import { auth } from "@/lib/auth";
+import { getRequestUserId } from "@/lib/api/auth";
 import { getGig, insertMedia } from "@/lib/db/queries";
 import {
   buildRelPaths,
@@ -33,8 +33,8 @@ function json(body: unknown, status: number): Response {
 }
 
 export async function POST(request: Request): Promise<Response> {
-  const session = await auth();
-  const userId = session?.user?.id;
+  // Website cookie or the app's bearer token (see src/lib/api/auth.ts).
+  const userId = await getRequestUserId(request);
   if (!userId) return json({ error: "Niet ingelogd." }, 401);
 
   const gigId = new URL(request.url).searchParams.get("gigId")?.trim();
