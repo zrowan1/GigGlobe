@@ -229,3 +229,15 @@ npm run db:migrate                    # tabellen aanmaken
 npm run seed -- jij@voorbeeld.nl pw   # login-account aanmaken
 npm run dev                           # app op http://localhost:3000
 ```
+
+---
+
+## Fase iOS-API — JSON-API voor de iPhone-app ✅
+
+**Doel: de native iPhone-app ([GigGlobe-iOS](https://github.com/zrowan1/GigGlobe-iOS)) kan inloggen en alles doen wat de website kan.** Zie [docs/API.md](docs/API.md).
+
+- [x] `GET /api/health` (publiek) voor de automatische thuis/buiten-detectie
+- [x] `POST /api/mobile/login` → token dat op het interne én het externe adres werkt
+- [x] JSON-endpoints `/api/v1/...` voor optredens, artiesten, venues, setlists, statistieken en geocoding
+- [x] Media-upload en -weergave accepteren het token
+- [x] Schrijflogica gedeeld tussen website en API (`src/lib/gig-service.ts`)

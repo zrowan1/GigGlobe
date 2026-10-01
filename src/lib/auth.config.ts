@@ -23,6 +23,19 @@ export const authConfig = {
       // Never interfere with Auth.js's own endpoints (login, logout, etc.).
       if (pathname.startsWith("/api/auth")) return true;
 
+      // API routes used by the iPhone app authenticate themselves (bearer
+      // token or cookie, see src/lib/api/auth.ts) and answer 401 as JSON.
+      // The middleware only knows about the cookie, so it must not redirect
+      // these to the login page. /api/health is public on purpose.
+      if (
+        pathname === "/api/health" ||
+        pathname.startsWith("/api/mobile/") ||
+        pathname.startsWith("/api/v1/") ||
+        pathname.startsWith("/api/media/")
+      ) {
+        return true;
+      }
+
       const onLogin = pathname.startsWith("/login");
       if (onLogin) {
         // Already logged in? Skip the login page, go home.
